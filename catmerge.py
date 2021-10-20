@@ -7,11 +7,28 @@ import click
 
 
 @click.command()
-@click.argument("phot_flag", type=int)
-def main(phot_flag):
-    dmatch = 1.0  # matching radius in arcsec
-    sdev = 0.006  # max magnitude difference for non-variables
-
+@click.option(
+    "--phot_flag",
+    type=int,
+    default=1,
+    help="Magnitude type. 0: orginal aperture photometry; 1: aperture photometry with star center refitted by PSF",
+)
+@click.option(
+    "--dmatch", type=float, default=1.0, help="Position matching distance in arcsec"
+)
+@click.option(
+    "--sdev",
+    type=float,
+    default=0.006,
+    help="Standard deviation for none variable selection",
+)
+@click.option(
+    "--medframe_factor",
+    type=float,
+    default=1.2,
+    help="A factor on average star number in a frame for reference frame selection",
+)
+def main(phot_flag, dmatch, sdev, medframe_factor):
     file_list_byte = subprocess.check_output(
         "ls *.allmag{0}".format(phot_flag), shell=True
     )
@@ -29,7 +46,7 @@ def main(phot_flag):
         info_dict_list.append(info_dict)
         coord_list.append(cat[:, 18:20].astype(float))
 
-    medframe_index = find_medframe_index(info_dict_list)
+    medframe_index = find_medframe_index(info_dict_list, medframe_factor)
     cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
 
     # Merge the catalogs
@@ -107,10 +124,11 @@ def main(phot_flag):
                 j2 = istd[k2]
                 m1 = psfmagmatch[j1, :, 0]
                 m2 = psfmagmatch[j2, :, 0]
-                dm = (m1 - m2) * np.abs(np.sign(m1 * m2))
-                idm = len(dm[(m1 * m2 != 0)])
-                sdm = np.sum(dm)
-                sdm = sdm / idm
+                dm = (m1 - m2) * np.abs(
+                    np.sign(m1 * m2)
+                )  # Magnitude difference between j1 and j2
+                idm = len(dm[(m1 * m2 != 0)])  # Number of frame with non-zero records
+                sdm = np.sum(dm) / idm  # Average magnitude difference
                 sig = np.sum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
                 sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
                 if sigm[k1, k2] < sdev:
@@ -136,7 +154,7 @@ def main(phot_flag):
                     break
         kcc = k
 
-    with open("stdstar0n.dat", "w") as f:
+    with open("stdstar0.dat", "w") as f:
         for j in range(kcc):
             f.write(
                 "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
@@ -239,8 +257,8 @@ def read_cat_and_info(file_name):
     return cat, info_dict
 
 
-def find_medframe_index(info_dict_list):
-    """Find the index of reference frame which has 1.2 times the mean number of stars
+def find_medframe_index(info_dict_list, medframe_factor):
+    """Find the index of reference frame which has medframe_factor times the mean number of stars
 
     Args:
         catfile_list (list): list of catfile name
@@ -251,8 +269,8 @@ def find_medframe_index(info_dict_list):
     nc = list()
     for info_dict in info_dict_list:
         nc.append(info_dict["nstar"])
-    nfmean = 1.2 * np.sum(nc) / len(nc)
-    medframe_index = np.argmin(np.abs(nc - np.sum(nc) / len(nc) * 1.2))
+    nfmean = medframe_factor * np.sum(nc) / len(nc)
+    medframe_index = np.argmin(np.abs(nc - np.sum(nc) / len(nc) * medframe_factor))
     print(
         "# frames: {0:3d}  Std frame: {1}  # Stars: {2:3d}".format(
             len(info_dict_list),
