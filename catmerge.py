@@ -5,19 +5,133 @@ import subprocess
 import pandas as pd
 import click
 
+
+
+
 @click.command()
 @click.argument("phot_flag", type=int)
 def main(phot_flag):
-    pass
+    dmatch = 1.0 # matching radius in arcsec
+    sdev = 0.006
 
+    file_list_byte = subprocess.check_output("ls *.allmag{0}".format(phot_flag), shell=True)
+    catfile_list = list(filter(None, file_list_byte.decode("utf8").split("\n")))
+    nframe = len(catfile_list)
 
-def test(file_name):
- # columns = ((0,10),(11,14),(15,18),(19,22),(23,29),(30,35),
- #               (36,44),(44,45),(46,49),(50,55),(56,61),(62,67),
- #               (68,73),(74,79),(79,80),(81,86),(86,87),(88,108))
- #     string=file.readline()
- #     dataline = [ string[c[0]:c[1]] for c in columns ]
-    pass
+    # Reading out all individual catalogs into cat_list, info_dict_list, ra_list and dec_list
+    cat_list = list()
+    info_dict_list = list()
+    # coord_list = list()
+    ra_list = list()
+    dec_list = list()
+    for k in range(nframe):
+        cat, info_dict = read_cat_and_info(catfile_list[k])
+        cat = cat.to_numpy()
+        cat_list.append(cat)
+        info_dict_list.append(info_dict)
+        # coord_list.append(cat[:, 18:20].astype(float))
+        ra_list.append(cat[:, 18].astype(float))
+        dec_list.append(cat[:, 19].astype(float))
+
+    medframe_index = find_medframe_index(info_dict_list)
+    cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
+
+    # Merge the catalogs
+    # Use medframe as a reference, looking for each stars in all other frames by matching coordinates
+    apmagmatch = np.zeros((info_ref_dict["nstar"], nframe, 2))
+    psfmagmatch = np.zeros((info_ref_dict["nstar"], nframe, 2))
+    nomatch = np.zeros(info_ref_dict["nstar"]).astype(int)
+    for j in range(info_ref_dict["nstar"]):
+        ra0 = ra_list[medframe_index][j]
+        dec0 = dec_list[medframe_index][j]
+        for k in range(nframe):
+            match_flag = False
+            if k != medframe_index:
+                sep = np.sqrt((ra0 - ra_list[k]) ** 2 + (dec0 - dec_list[k]) ** 2)
+                if np.min(sep) < dmatch / 3600:
+                    match_flag = True
+                    cat = cat_list[k]
+                    i = np.argmax(sep < dmatch / 3600)
+                    apmagmatch[j, k, :] = cat[i, 11:13]
+                    psfmagmatch[j, k, :] = cat[i, 7:9]
+
+            else:
+                cat = cat_list[k]
+                apmagmatch[j, k, 0] = cat[j, 11]
+                apmagmatch[j, k, 1] = cat[j, 12]
+                psfmagmatch[j, k, 0] = cat[j, 7]
+                psfmagmatch[j, k, 1] = cat[j, 8]
+            if match_flag == False:
+                nomatch[j] += 1
+        
+    mjd_list = [info_dict["mjd"] for info_dict in info_dict_list]
+    ndate = len(set(mjd_list))
+    print("{0} of nights processed!".format(ndate))
+
+    if ndate > 1:
+        mergecat = "{0}ALL_{1}.gcat{2}".format(info_dict_list[0]['file_name'][1:6], info_dict_list[0]["file_name"][12:13], phot_flag)
+    else:
+        mergecat = "{0}.gcat{1}".format(info_dict_list[0]["file_name"][1:13], phot_flag)
+
+    # Define standard candidate stars for differential photometry
+    nmlim = max(int(nframe * 0.15), 20) # at most mising in nmlim number of frames
+    calib_flag = True
+    while calib_flag:
+        ic = 1
+        istd = list()
+        for j in range(info_dict_list[medframe_index]["nstar"]):
+            if nomatch[j] > nmlim:
+                continue
+            if psfmagmatch[j, medframe_index, 0] < 1 and apmagmatch[j, medframe_index, 0] < 1:
+                continue
+            istd.append(j)
+            ic += 1
+            if ic > 100:
+                ic -= 1
+                calib_flag = False
+                print("# Std star : {0}".format(ic))
+                break
+        if ic < 50:
+            nmlim *= 2
+
+    # Find non-variable candiate star for differential photometry
+    with open("std.dat", "w") as f:
+        sigm = np.zeros((ic, ic))
+        for k1 in range(ic):
+            j1 = istd[k1]
+            for k2 in range(k1 + 1, ic - 1):
+                j2 = istd[k2]
+                m1 = psfmagmatch[j1, :, 0]
+                m2 = psfmagmatch[j2, :, 0]
+                dm = (m1 - m2) * np.abs(np.sign(m1 * m2))
+                idm = len(dm[(m1 * m2 != 0)])
+                sdm = np.sum(dm)
+                sdm = sdm / idm
+                sig = np.sum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
+                sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
+                if sigm[k1, k2] < sdev:
+                    f.write("{0:3d} {1:3d} {2:3d} {3:4d} {4:.10f}\n".format(k1, k2, nomatch[j2], idm, sigm[k1, k2]))
+
+    with open("std.dat", "r") as f:
+        lines = f.readlines()
+        kstd1 = [int(list(filter(None, line.split(" ")))[0]) for line in lines]
+        kstd2 = [int(list(filter(None, line.split(" ")))[1]) for line in lines]
+        icc = len(kstd1)
+
+    with open("mdev.dat", "w") as f:
+        k = 0
+        for i in range(ic):
+            for j in range(icc):
+                if i == kstd2[j]:
+                    f.write("{0:10d} {1:10d} {2:10d}\n".format(k, ic, istd[i]))
+                    k += 1
+                    break
+        kcc = k
+
+    with open("stdstar0n.dat", "w") as f:
+        for j in range(kcc):
+            f.write("{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(ra_list[j][medframe_index], dec_list[j][medframe_index], apmagmatch[j, medframe_index, 0], apmagmatch[j, medframe_index, 1], psfmagmatch[j, medframe_index, 0], psfmagmatch[j, medframe_index, 1]))
+
 
 def read_cat_and_info(file_name):
     """Read and sort data and info from cat file
@@ -100,138 +214,5 @@ def find_medframe_index(info_dict_list):
 
 
 
-
 if __name__ == "__main__":
-    # main()
-    phot_flag = 0
-    dmatch = 1.0 # arcsec
-    sdev = 0.006
-
-    file_list_byte = subprocess.check_output("ls *.allmag{0}".format(phot_flag), shell=True)
-    catfile_list = list(filter(None, file_list_byte.decode("utf8").split("\n")))
-    nframe = len(catfile_list)
-
-    # Reading out all individual catalogs into cat_list, info_dict_list, ra_list and dec_list
-    cat_list = list()
-    info_dict_list = list()
-    ra_list = list()
-    dec_list = list()
-    for k in range(nframe):
-        cat, info_dict = read_cat_and_info(catfile_list[k])
-        cat = cat.to_numpy()
-        cat_list.append(cat)
-        info_dict_list.append(info_dict)
-        ra_list.append(cat[:, 18].astype(float))
-        dec_list.append(cat[:, 19].astype(float))
-    medframe_index = find_medframe_index(info_dict_list)
-
-    cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
-
-
-    apmagmatch = np.zeros((info_ref_dict["nstar"], nframe, 2))
-    psfmagmatch = np.zeros((info_ref_dict["nstar"], nframe, 2))
-
-    nomatch = np.zeros(info_ref_dict["nstar"]).astype(int)
-    for j in range(info_ref_dict["nstar"]):
-        ra0 = ra_list[medframe_index][j]
-        dec0 = dec_list[medframe_index][j]
-        for k in range(nframe):
-            match_flag = False
-            cat = cat_list[k]
-            info_dict = info_dict_list[k]
-            if k != medframe_index:
-                sep = np.sqrt((ra0 - ra_list[k]) ** 2 + (dec0 - dec_list[k]) ** 2)
-                if np.min(sep) < dmatch / 3600:
-                    match_flag = True
-                    i = np.argmax(sep < dmatch / 3600)
-                    apmagmatch[j, k, 0] = cat[i, 11]
-                    apmagmatch[j, k, 1] = cat[i, 12]
-                    psfmagmatch[j, k, 0] = cat[i, 7]
-                    psfmagmatch[j, k, 1] = cat[i, 8]
-
-            else:
-                apmagmatch[j, k, 0] = cat[j, 11]
-                apmagmatch[j, k, 1] = cat[j, 12]
-                psfmagmatch[j, k, 0] = cat[j, 7]
-                psfmagmatch[j, k, 1] = cat[j, 8]
-            if match_flag == False:
-                nomatch[j] += 1
-        
-    mjd_list = [info_dict["mjd"] for info_dict in info_dict_list]
-    ndate = len(set(mjd_list))
-    print("{0} of nights processed!".format(ndate))
-
-    if ndate > 1:
-        mergecat = "{0}ALL_{1}.gcat{2}".format(info_dict_list[0]['file_name'][1:6], info_dict_list[0]["file_name"][12:13], phot_flag)
-    else:
-        mergecat = "{0}.gcat{1}".format(info_dict_list[0]["file_name"][1:13], phot_flag)
-
-
-    nmlim = max(int(nframe * 0.15), 20) # at most mising in nmlim number of frames
-    calib_flag = True
-    while calib_flag:
-        ic = 1
-        istd = list()
-        for j in range(info_dict_list[medframe_index]["nstar"]):
-            if nomatch[j] > nmlim:
-                continue
-            if psfmagmatch[j, medframe_index, 0] < 1 and apmagmatch[j, medframe_index, 0] < 1:
-                continue
-            istd.append(j)
-            ic += 1
-            if ic > 100:
-                ic -= 1
-                calib_flag = False
-                print("# Std star : {0}".format(ic))
-                break
-        if ic < 50:
-            nmlim *= 2
-
-    with open("std.dat", "w") as f:
-        sigm = np.zeros((ic, ic))
-        for k1 in range(ic):
-            j1 = istd[k1]
-            for k2 in range(k1 + 1, ic - 1):
-                j2 = istd[k2]
-                idm = 0
-                sdm = 0
-                sig = 0
-                dm = np.zeros(nframe)
-                for i in range(nframe):
-                    if (psfmagmatch[j1, i, 0] * psfmagmatch[j2, i, 0] != 0):
-                        dm[i] = psfmagmatch[j1, i, 0] - psfmagmatch[j2, i, 0]
-                        sdm = sdm + dm[i]
-                        idm += 1
-                sdm = sdm / idm
-                for i in range(nframe):
-                    if dm[i] != 0:
-                        sig = sig + (dm[i] - sdm) ** 2
-                if sig != 0:
-                    sigm[k1, k2] = np.sqrt(sig / idm)
-
-                if sigm[k1, k2] < sdev:
-                    f.write("{0:3d} {1:3d} {2:3d} {3:4d} {4:.10f}\n".format(k1, k2, nomatch[j2], idm, sigm[k1, k2]))
-
-    with open("std.dat", "r") as f:
-        lines = f.readlines()
-        kstd1 = [int(list(filter(None, line.split(" ")))[0]) for line in lines]
-        kstd2 = [int(list(filter(None, line.split(" ")))[1]) for line in lines]
-        icc = len(kstd1)
-
-    with open("mdev.dat", "w") as f:
-        k = 0
-        for i in range(ic):
-            for j in range(icc):
-                if i == kstd2[j]:
-                    f.write("{0:10d} {1:10d} {2:10d}\n".format(k, ic, istd[i]))
-                    k += 1
-                    break
-        kcc = k
-
-    with open("stdstar0n.dat", "w") as f:
-        for j in range(kcc):
-            f.write("{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(ra_list[j][medframe_index], dec_list[j][medframe_index], apmagmatch[j, medframe_index, 0], apmagmatch[j, medframe_index, 1], psfmagmatch[j, medframe_index, 0], psfmagmatch[j, medframe_index, 1]))
-
-
-
-
+    main()
