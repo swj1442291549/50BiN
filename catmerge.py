@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 from astropy.time import Time
 from datetime import datetime
 import subprocess
@@ -82,14 +83,30 @@ def main(phot_flag, dmatch, sdev, medframe_factor):
     ndate = len(set(df_info["mjd"]))
     print("{0} of nights processed!".format(ndate))
 
+    # Write merged uncalibrated data into a file
     if ndate > 1:
-        mergecat = "{0}ALL_{1}.gcat{2}".format(
+        mergecat_file_name = "{0}ALL_{1}.gcat{2}".format(
             info_dict_list[0]["file_name"][1:6],
             info_dict_list[0]["file_name"][12:13],
             phot_flag,
         )
     else:
-        mergecat = "{0}.gcat{1}".format(info_dict_list[0]["file_name"][1:13], phot_flag)
+        mergecat_file_name = "{0}.gcat{1}".format(
+            info_dict_list[0]["file_name"][1:13], phot_flag
+        )
+
+    mergecat_dict = {
+        "nframe": nframe,
+        "medframe_index": medframe_index,
+        "medframe_nstar": info_dict_list[medframe_index]["nstar"],
+        "ndate": ndate,
+        "df_info": df_info,
+        "nomatch": nomatch,
+        "coord": coord_list,
+        "psfmagmatch": psfmagmatch,
+        "apmagmatch": apmagmatch,
+    }
+    pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
 
     # Define standard candidate stars for differential photometry
     nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
