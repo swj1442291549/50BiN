@@ -6,15 +6,15 @@ import pandas as pd
 import click
 
 
-
-
 @click.command()
 @click.argument("phot_flag", type=int)
 def main(phot_flag):
-    dmatch = 1.0 # matching radius in arcsec
-    sdev = 0.006
+    dmatch = 1.0  # matching radius in arcsec
+    sdev = 0.006  # max magnitude difference for non-variables
 
-    file_list_byte = subprocess.check_output("ls *.allmag{0}".format(phot_flag), shell=True)
+    file_list_byte = subprocess.check_output(
+        "ls *.allmag{0}".format(phot_flag), shell=True
+    )
     catfile_list = list(filter(None, file_list_byte.decode("utf8").split("\n")))
     nframe = len(catfile_list)
 
@@ -42,7 +42,9 @@ def main(phot_flag):
         for k in range(nframe):
             match_flag = False
             if k != medframe_index:
-                sep = np.sqrt((ra0 - coord_list[k][:, 0]) ** 2 + (dec0 - coord_list[k][:, 1]) ** 2)
+                sep = np.sqrt(
+                    (ra0 - coord_list[k][:, 0]) ** 2 + (dec0 - coord_list[k][:, 1]) ** 2
+                )
                 if np.min(sep) < dmatch / 3600:
                     match_flag = True
                     cat = cat_list[k]
@@ -58,18 +60,22 @@ def main(phot_flag):
                 psfmagmatch[j, k, 1] = cat[j, 8]
             if match_flag == False:
                 nomatch[j] += 1
-        
-    mjd_list = [info_dict["mjd"] for info_dict in info_dict_list]
-    ndate = len(set(mjd_list))
+
+    df_info = pd.DataFrame(info_dict_list)
+    ndate = len(set(df_info["mjd"]))
     print("{0} of nights processed!".format(ndate))
 
     if ndate > 1:
-        mergecat = "{0}ALL_{1}.gcat{2}".format(info_dict_list[0]['file_name'][1:6], info_dict_list[0]["file_name"][12:13], phot_flag)
+        mergecat = "{0}ALL_{1}.gcat{2}".format(
+            info_dict_list[0]["file_name"][1:6],
+            info_dict_list[0]["file_name"][12:13],
+            phot_flag,
+        )
     else:
         mergecat = "{0}.gcat{1}".format(info_dict_list[0]["file_name"][1:13], phot_flag)
 
     # Define standard candidate stars for differential photometry
-    nmlim = max(int(nframe * 0.15), 20) # at most mising in nmlim number of frames
+    nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
     calib_flag = True
     while calib_flag:
         ic = 1
@@ -77,7 +83,10 @@ def main(phot_flag):
         for j in range(info_dict_list[medframe_index]["nstar"]):
             if nomatch[j] > nmlim:
                 continue
-            if psfmagmatch[j, medframe_index, 0] < 1 and apmagmatch[j, medframe_index, 0] < 1:
+            if (
+                psfmagmatch[j, medframe_index, 0] < 1
+                and apmagmatch[j, medframe_index, 0] < 1
+            ):
                 continue
             istd.append(j)
             ic += 1
@@ -105,7 +114,11 @@ def main(phot_flag):
                 sig = np.sum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
                 sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
                 if sigm[k1, k2] < sdev:
-                    f.write("{0:3d} {1:3d} {2:3d} {3:4d} {4:.10f}\n".format(k1, k2, nomatch[j2], idm, sigm[k1, k2]))
+                    f.write(
+                        "{0:3d} {1:3d} {2:3d} {3:4d} {4:.10f}\n".format(
+                            k1, k2, nomatch[j2], idm, sigm[k1, k2]
+                        )
+                    )
 
     with open("std.dat", "r") as f:
         lines = f.readlines()
@@ -125,7 +138,16 @@ def main(phot_flag):
 
     with open("stdstar0n.dat", "w") as f:
         for j in range(kcc):
-            f.write("{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(coord_list[j][medframe_index, 0], coord_list[j][medframe_index, 1], apmagmatch[j, medframe_index, 0], apmagmatch[j, medframe_index, 1], psfmagmatch[j, medframe_index, 0], psfmagmatch[j, medframe_index, 1]))
+            f.write(
+                "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
+                    coord_list[j][medframe_index, 0],
+                    coord_list[j][medframe_index, 1],
+                    apmagmatch[j, medframe_index, 0],
+                    apmagmatch[j, medframe_index, 1],
+                    psfmagmatch[j, medframe_index, 0],
+                    psfmagmatch[j, medframe_index, 1],
+                )
+            )
 
 
 def read_cat_and_info(file_name):
@@ -148,17 +170,41 @@ def read_cat_and_info(file_name):
             aperture (float): aperture in pix
             nstar (int): number of stars in the frame
     """
-    cat = pd.read_table(file_name, delim_whitespace=True, skiprows=3, names=["sn", 'RA', 'DEC', 'x', 'dx', 'y', 'dy', 'psfmag', 'psfmag_err', 'apmag1', "apmag1_err", "apmag2", "apmag2_err", "apmag3", "apmag3_err", "apmag4", "apmag4_err", "ID"])
+    cat = pd.read_table(
+        file_name,
+        delim_whitespace=True,
+        skiprows=3,
+        names=[
+            "sn",
+            "RA",
+            "DEC",
+            "x",
+            "dx",
+            "y",
+            "dy",
+            "psfmag",
+            "psfmag_err",
+            "apmag1",
+            "apmag1_err",
+            "apmag2",
+            "apmag2_err",
+            "apmag3",
+            "apmag3_err",
+            "apmag4",
+            "apmag4_err",
+            "ID",
+        ],
+    )
     ra_s = cat.RA.str.split(":", expand=True)
-    rah=pd.to_numeric(ra_s[0])
-    ram=pd.to_numeric(ra_s[1])
-    ras=pd.to_numeric(ra_s[2])
+    rah = pd.to_numeric(ra_s[0])
+    ram = pd.to_numeric(ra_s[1])
+    ras = pd.to_numeric(ra_s[2])
     ra = 15 * (rah + ram / 60 + ras / 3600)
     cat = cat.assign(ra=ra)
     dec_s = cat.DEC.str.split(":", expand=True)
-    decd=pd.to_numeric(dec_s[0])
-    decm=pd.to_numeric(dec_s[1]) 
-    decs=pd.to_numeric(dec_s[2])
+    decd = pd.to_numeric(dec_s[0])
+    decm = pd.to_numeric(dec_s[1])
+    decs = pd.to_numeric(dec_s[2])
     dec = np.abs(decd) + decm / 60 + decs / 3600
     dec = dec * ((decd == np.abs(decd)) - 0.5) * 2
     cat = cat.assign(dec=dec)
@@ -167,8 +213,10 @@ def read_cat_and_info(file_name):
     with open(file_name, "r") as f:
         header_line = f.readline()
         info_line = f.readline()
-    info_list = list(filter(None, info_line[:-1].split(' ')))
-    start_time = datetime.strptime("{0} {1}".format(file_name[6:12], info_list[0]), "%y%m%d %H:%M:%S.%f")
+    info_list = list(filter(None, info_line[:-1].split(" ")))
+    start_time = datetime.strptime(
+        "{0} {1}".format(file_name[6:12], info_list[0]), "%y%m%d %H:%M:%S.%f"
+    )
     mid_time = float(info_list[2])
     exp = float(info_list[1])
     fwhm = float(info_list[3])
@@ -179,16 +227,17 @@ def read_cat_and_info(file_name):
     nstar = len(cat)
 
     info_dict = {
-            "file_name": file_name,
-            "mjd": mjd,
-            "start_time": start_time,
-            "mid_time": mid_time,
-            "exp": exp,
-            "fwhm": fwhm,
-            "aperture": aperture,
-            "nstar": nstar
-            }
+        "file_name": file_name,
+        "mjd": mjd,
+        "start_time": start_time,
+        "mid_time": mid_time,
+        "exp": exp,
+        "fwhm": fwhm,
+        "aperture": aperture,
+        "nstar": nstar,
+    }
     return cat, info_dict
+
 
 def find_medframe_index(info_dict_list):
     """Find the index of reference frame which has 1.2 times the mean number of stars
@@ -203,10 +252,15 @@ def find_medframe_index(info_dict_list):
     for info_dict in info_dict_list:
         nc.append(info_dict["nstar"])
     nfmean = 1.2 * np.sum(nc) / len(nc)
-    medframe_index = np.argmin(np.abs(nc - np.sum(nc)/len(nc) * 1.2))
-    print("# frames: {0:3d}  Std frame: {1}  # Stars: {2:3d}".format(len(info_dict_list), info_dict_list[medframe_index]['file_name'], info_dict_list[medframe_index]['nstar']))
+    medframe_index = np.argmin(np.abs(nc - np.sum(nc) / len(nc) * 1.2))
+    print(
+        "# frames: {0:3d}  Std frame: {1}  # Stars: {2:3d}".format(
+            len(info_dict_list),
+            info_dict_list[medframe_index]["file_name"],
+            info_dict_list[medframe_index]["nstar"],
+        )
+    )
     return medframe_index
-
 
 
 if __name__ == "__main__":
