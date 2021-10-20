@@ -18,20 +18,16 @@ def main(phot_flag):
     catfile_list = list(filter(None, file_list_byte.decode("utf8").split("\n")))
     nframe = len(catfile_list)
 
-    # Reading out all individual catalogs into cat_list, info_dict_list, ra_list and dec_list
+    # Reading out all individual catalogs into cat_list, info_dict_list, coord_list
     cat_list = list()
     info_dict_list = list()
-    # coord_list = list()
-    ra_list = list()
-    dec_list = list()
+    coord_list = list()
     for k in range(nframe):
         cat, info_dict = read_cat_and_info(catfile_list[k])
         cat = cat.to_numpy()
         cat_list.append(cat)
         info_dict_list.append(info_dict)
-        # coord_list.append(cat[:, 18:20].astype(float))
-        ra_list.append(cat[:, 18].astype(float))
-        dec_list.append(cat[:, 19].astype(float))
+        coord_list.append(cat[:, 18:20].astype(float))
 
     medframe_index = find_medframe_index(info_dict_list)
     cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
@@ -42,12 +38,11 @@ def main(phot_flag):
     psfmagmatch = np.zeros((info_ref_dict["nstar"], nframe, 2))
     nomatch = np.zeros(info_ref_dict["nstar"]).astype(int)
     for j in range(info_ref_dict["nstar"]):
-        ra0 = ra_list[medframe_index][j]
-        dec0 = dec_list[medframe_index][j]
+        ra0, dec0 = coord_list[medframe_index][j]
         for k in range(nframe):
             match_flag = False
             if k != medframe_index:
-                sep = np.sqrt((ra0 - ra_list[k]) ** 2 + (dec0 - dec_list[k]) ** 2)
+                sep = np.sqrt((ra0 - coord_list[k][:, 0]) ** 2 + (dec0 - coord_list[k][:, 1]) ** 2)
                 if np.min(sep) < dmatch / 3600:
                     match_flag = True
                     cat = cat_list[k]
@@ -130,7 +125,7 @@ def main(phot_flag):
 
     with open("stdstar0n.dat", "w") as f:
         for j in range(kcc):
-            f.write("{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(ra_list[j][medframe_index], dec_list[j][medframe_index], apmagmatch[j, medframe_index, 0], apmagmatch[j, medframe_index, 1], psfmagmatch[j, medframe_index, 0], psfmagmatch[j, medframe_index, 1]))
+            f.write("{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(coord_list[j][medframe_index, 0], coord_list[j][medframe_index, 1], apmagmatch[j, medframe_index, 0], apmagmatch[j, medframe_index, 1], psfmagmatch[j, medframe_index, 0], psfmagmatch[j, medframe_index, 1]))
 
 
 def read_cat_and_info(file_name):
