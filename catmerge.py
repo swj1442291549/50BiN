@@ -102,7 +102,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
         "ndate": ndate,
         "df_info": df_info,
         "nomatch": nomatch,
-        "coord": coord_list,
+        "coord": coord_list[medframe_index],
         "psfmagmatch": psfmagmatch,
         "apmagmatch": apmagmatch,
     }
