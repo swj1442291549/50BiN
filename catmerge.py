@@ -11,7 +11,7 @@ import click
 @click.option(
     "--phot_flag",
     type=int,
-    default=1,
+    default=0,
     help="Magnitude type. 0: orginal aperture photometry; 1: aperture photometry with star center refitted by PSF",
 )
 @click.option(
