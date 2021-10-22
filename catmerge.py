@@ -85,13 +85,13 @@ def main(phot_flag, dmatch, sdev, medframe_factor):
 
     # Write merged uncalibrated data into a file
     if ndate > 1:
-        mergecat_file_name = "{0}ALL_{1}.gcat{2}".format(
+        mergecat_file_name = "{0}ALL_{1}.gcat{2}.pkl".format(
             info_dict_list[0]["file_name"][1:6],
             info_dict_list[0]["file_name"][12:13],
             phot_flag,
         )
     else:
-        mergecat_file_name = "{0}.gcat{1}".format(
+        mergecat_file_name = "{0}.gcat{1}.pkl".format(
             info_dict_list[0]["file_name"][1:13], phot_flag
         )
 
