@@ -85,13 +85,13 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
 
     # Write merged uncalibrated data into a file
     if ndate > 1:
-        mergecat_file_name = "{0}ALL_{1}.gcat{2}.pkl".format(
+        mergecat_file_name = "{0}ALL_{1}.{2}gcat.pkl".format(
             info_dict_list[0]["file_name"][1:6],
             info_dict_list[0]["file_name"][12:13],
             phot_flag,
         )
     else:
-        mergecat_file_name = "{0}.gcat{1}.pkl".format(
+        mergecat_file_name = "{0}.{1}gcat.pkl".format(
             info_dict_list[0]["file_name"][1:13], phot_flag
         )
 
@@ -296,7 +296,6 @@ def find_medframe_index(info_dict_list, medframe_factor):
         )
     )
     return medframe_index
-
 
 
 if __name__ == "__main__":

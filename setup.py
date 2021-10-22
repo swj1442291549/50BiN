@@ -1,18 +1,11 @@
 from setuptools import setup
 
 setup(
-    name='catmerge',
-    version='0.1.0',
-    py_modules=['catmerge'],
-    install_requires=[
-        'Click',
-        "astropy",
-        "pandas",
-        "numpy"
-    ],
+    name="50bin",
+    version="0.1.0",
+    py_modules=["catmerge", "plotcurve"],
+    install_requires=["Click", "astropy", "pandas", "numpy", "matplotlib"],
     entry_points={
-        'console_scripts': [
-            'catmerge = catmerge:cli',
-        ],
+        "console_scripts": ["catmerge = catmerge:cli", "plotcurve = plotcurve:cli"],
     },
 )
