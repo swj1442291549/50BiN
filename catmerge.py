@@ -29,7 +29,7 @@ import click
     default=1.2,
     help="A factor on average star number in a frame for reference frame selection",
 )
-def main(phot_flag, dmatch, sdev, medframe_factor):
+def cli(phot_flag, dmatch, sdev, medframe_factor):
     file_list_byte = subprocess.check_output(
         "ls *.allmag{0}".format(phot_flag), shell=True
     )
@@ -298,5 +298,6 @@ def find_medframe_index(info_dict_list, medframe_factor):
     return medframe_index
 
 
+
 if __name__ == "__main__":
-    main()
+    cli()
