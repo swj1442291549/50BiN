@@ -77,7 +77,7 @@ The output files include:
 
 
 ## Install
-To use this script, `virtualenv` is highly recommended. Please check [this website](https://virtualenv.pypa.io/en/latest/installation.html) for an installation guidance.
+To use this script, `virtualenv` is highly recommended (but not required). Please check [this website](https://virtualenv.pypa.io/en/latest/installation.html) for an installation guidance.
 
 Enter the folder that contains all the source files
 ```bash
@@ -87,6 +87,6 @@ $ pip install --editable .
 ```
 
 Afterwards, the program should be available:
-```
+```bash
 $ catmerge
 ```
