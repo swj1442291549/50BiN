@@ -13,14 +13,24 @@ import numpy as np
     "--magtype", type=str, default="a", help="magnitude type. a: aperture; p: psf"
 )
 @click.option("--noc", type=int, default=20, help="Number of selected standard stars")
-@click.option("--plot_flag", type=bool, default=True, help="Enter interacitve plot")
+@click.option("--plot_flag", type=bool, default=True, help="Enter interactive plot")
 def cli(input_file_name, magtype, noc, plot_flag):
     """Input catalog file from catmerge (.pkl)"""
     if not Path(input_file_name).is_file():
         print("File not found!")
         exit()
 
+
     mergecat_dict = pickle.load(open(input_file_name, "rb"))
+
+    if "magx" in mergecat_dict.keys():
+        print("This catalog has alreadly contained corrected photometry")
+        if plot_flag:
+            plot_lc(input_file_name)
+            return
+        else:
+            exit()
+
     (
         nframe,
         medframe_index,
@@ -371,5 +381,4 @@ def plot_lc(file_name):
 
 
 if __name__ == "__main__":
-    # cli()
-    plot_lc("N2301ALL_B.0agcat_cal.pkl")
+    cli()

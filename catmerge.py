@@ -12,7 +12,7 @@ import click
     "--phot_flag",
     type=int,
     default=0,
-    help="Magnitude type. 0: orginal aperture photometry; 1: aperture photometry with star center refitted by PSF",
+    help="Magnitude type. 0: original aperture photometry; 1: aperture photometry with star center refitted by PSF",
 )
 @click.option(
     "--dmatch", type=float, default=1.0, help="Position matching distance in arcsec"
@@ -132,7 +132,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
         if ic < 50:
             nmlim *= 2
 
-    # Find non-variable candiate star for differential photometry
+    # Find non-variable candidate stars for differential photometry
     with open("std.dat", "w") as f:
         sigm = np.zeros((ic, ic))
         for k1 in range(ic):
