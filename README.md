@@ -14,7 +14,7 @@ This program combines all the frames into a single catalogue, which includes thr
 3. Find the non-variable candidate stars for differential photometry
 
 The raw data have four types of files, with different extensions:
-- `*.allcat`: PSF photometry files
+- `*.alscat`: PSF photometry files
 - `*.ap0`: original aperture photometry files
 - `*.allmag0`: the combination of the previous two
 - `*.allmag1`: similar to `*.allmag0`, but the aperture photometry is calculated with star center refitted by PSF
