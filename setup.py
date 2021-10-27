@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="50bin",
-    version="0.1.0",
+    version="0.1.1",
     py_modules=["catmerge", "plotcurve"],
     install_requires=["Click", "astropy", "pandas", "numpy", "matplotlib"],
     entry_points={

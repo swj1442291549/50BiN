@@ -98,6 +98,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
     for ipg in range(nstar):
         magmatch[ipg, magmatch[ipg, :, 0] > 30, 1] = 0
         magmatch[ipg, magmatch[ipg, :, 0] > 30, 0] = 0
+
     for ipg in range(nstar):
         mag2 = np.zeros(nframe)
         err = np.zeros(nframe)
@@ -246,7 +247,8 @@ def prepare_lc_df(star_index, df_info, magmatch, magx):
 def plot_lc(file_name):
     if "s" in plt.rcParams["keymap.save"]:
         plt.rcParams["keymap.save"].remove("s")
-    # if ''
+    if "g" in plt.rcParams["keymap.grid"]:
+        plt.rcParams["keymap.save"].remove("g")
     mergecat_dict = pickle.load(open(file_name, "rb"))
     (
         nframe,
@@ -319,6 +321,10 @@ def plot_lc(file_name):
             mday_flag = not mday_flag
             if not mday_flag:
                 mjd_index = -1
+        elif event.key == 'g':
+            print(34)
+            star_index = 34
+            pass
 
         plt.clf()
         lc = prepare_lc_df(star_index, df_info, magmatch, magx)
@@ -378,7 +384,6 @@ def plot_lc(file_name):
     ax.set_title(title)
     fig.canvas.mpl_connect("key_press_event", on_key)
     plt.show()
-
 
 if __name__ == "__main__":
     cli()
