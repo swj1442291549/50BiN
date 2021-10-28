@@ -7,6 +7,7 @@ import pandas as pd
 import click
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
+from tqdm import tqdm
 
 
 @click.command()
@@ -42,7 +43,8 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     cat_list = list()
     info_dict_list = list()
     coord_list = list()
-    for k in range(nframe):
+    print("Reading data ... ")
+    for k in tqdm(range(nframe)):
         cat, info_dict = read_cat_and_info(catfile_list[k])
         cat = cat.to_numpy()
         cat_list.append(cat)
@@ -57,7 +59,8 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     apmagmatch = np.zeros((info_ref_dict["nstar"], nframe, 2))
     psfmagmatch = np.zeros((info_ref_dict["nstar"], nframe, 2))
     nomatch = np.zeros(info_ref_dict["nstar"]).astype(int)
-    for j in range(info_ref_dict["nstar"]):
+    print("Matching stars ... ")
+    for j in tqdm(range(info_ref_dict["nstar"])):
         ra0, dec0 = coord_list[medframe_index][j]
         for k in range(nframe):
             match_flag = False
