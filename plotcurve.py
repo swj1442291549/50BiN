@@ -89,6 +89,64 @@ def cli(input_file_name, magtype, noc, plot_flag):
     else:
         magmatch = psfmagmatch
 
+    magx, ommag, ommag_err = differential_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nframe)
+
+    # Save average magnitude for each star
+    mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
+        input_file_name.split(".")[0], input_file_name.split(".")[1][0], magtype
+    )
+    with open(mmag_catfile_name, "w") as f:
+        for i in range(nstar):
+            f.write(
+                "{0:5d} {1:15.8f} {2:15.8f} {3:10.5f} {4:10.5f}\n".format(
+                    i, coord[i, 0], coord[i, 1], ommag[i], ommag_err[i]
+                )
+            )
+
+    # Save final catalog
+    final_catfile_name = "{0}.{1}{2}gcat_cal.pkl".format(
+        input_file_name.split(".")[0], input_file_name.split(".")[1][0], magtype
+    )
+
+    mergecat_dict = {
+        "nframe": nframe,
+        "medframe_index": medframe_index,
+        "medframe_nstar": nstar,
+        "ndate": ndate,
+        "df_info": df_info,
+        "nomatch": nomatch,
+        "coord": coord,
+        "psfmagmatch": psfmagmatch,
+        "apmagmatch": apmagmatch,
+        "magtype": magtype,
+        "magx": magx,
+        "ommag": ommag,
+        "ommag_err": ommag_err,
+    }
+    pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
+
+    if plot_flag:
+        plot_lc(final_catfile_name)
+
+def airmass_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nframe):
+    pass
+
+def differential_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nframe):
+    """Correct photometry via differential method
+
+    Args:
+        magmatch (array): raw photometry array
+        nstar (int): number of star
+        df_info (DataFrame): info
+        ncs (list): list of standard stars' index
+        medframe_index (int): index of medframe
+        nframe (int): number of frame
+
+    Returns:
+        magx (array): corrected photometry array
+        ommag (float): average magnitude
+        ommag_err (float): error of average magnitude
+    """
     magx = np.zeros_like(magmatch)
     ommag = np.zeros(nstar)
     ommag_err = np.zeros(nstar)
@@ -134,43 +192,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
             if len(magb) != 0:
                 ommag[ipg] = np.mean(magb)
                 ommag_err[ipg] = np.mean(err)
-
-    # Save average magnitude for each star
-    mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
-        input_file_name.split(".")[0], input_file_name.split(".")[1][0], magtype
-    )
-    with open(mmag_catfile_name, "w") as f:
-        for i in range(nstar):
-            f.write(
-                "{0:5d} {1:15.8f} {2:15.8f} {3:10.5f} {4:10.5f}\n".format(
-                    i, coord[i, 0], coord[i, 1], ommag[i], ommag_err[i]
-                )
-            )
-
-    # Save final catalog
-    final_catfile_name = "{0}.{1}{2}gcat_cal.pkl".format(
-        input_file_name.split(".")[0], input_file_name.split(".")[1][0], magtype
-    )
-
-    mergecat_dict = {
-        "nframe": nframe,
-        "medframe_index": medframe_index,
-        "medframe_nstar": nstar,
-        "ndate": ndate,
-        "df_info": df_info,
-        "nomatch": nomatch,
-        "coord": coord,
-        "psfmagmatch": psfmagmatch,
-        "apmagmatch": apmagmatch,
-        "magtype": magtype,
-        "magx": magx,
-        "ommag": ommag,
-        "ommag_err": ommag_err,
-    }
-    pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
-
-    if plot_flag:
-        plot_lc(final_catfile_name)
+    return magx, ommag, ommag_err
 
 
 def coord_to_str(ra, dec):
@@ -204,7 +226,7 @@ def save_single_phot(input_file_name, magtype, star_index, amjd, coord, magmatch
         star_index (int): index of the star
         amjd (array): AMJD
         coord (array): 2D coords array
-        magmatch (array): inpur photometry array
+        magmatch (array): raw photometry array
         magx (array): corrected photometry array
     """
     ra_str, dec_str = coord_to_str(coord[star_index][0], coord[star_index][1])
