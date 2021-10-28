@@ -4,6 +4,7 @@ from operator import itemgetter
 from matplotlib import pyplot as plt
 import click
 import numpy as np
+from tqdm import tqdm
 
 
 @click.command()
@@ -98,7 +99,8 @@ def cli(input_file_name, magtype, noc, plot_flag):
         magmatch[ipg, magmatch[ipg, :, 0] > 30, 1] = 0
         magmatch[ipg, magmatch[ipg, :, 0] > 30, 0] = 0
 
-    for ipg in range(nstar):
+    print("Calibrating stars ...")
+    for ipg in tqdm(range(nstar)):
         mag2 = np.zeros(nframe)
         err = np.zeros(nframe)
         js1 = ipg
