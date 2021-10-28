@@ -89,11 +89,17 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     print("{0} of nights processed!".format(ndate))
 
     # Calculate airmass
-    bear_mountain = EarthLocation(lat=37.373*u.deg, lon=97.56*u.deg, height=3200*u.m)
-    time = Time(df_info['start_time']) # should use mid time
+    bear_mountain = EarthLocation(
+        lat=37.373 * u.deg, lon=97.56 * u.deg, height=3200 * u.m
+    )
+    time = Time(df_info["start_time"])  # should use mid time
 
-    target = SkyCoord(np.mean(coord_list[medframe_index][:, 0]), np.mean(coord_list[medframe_index][:, 1]), unit='deg')
-    target_altaz = target.transform_to(AltAz(obstime=time,location=bear_mountain))
+    target = SkyCoord(
+        np.mean(coord_list[medframe_index][:, 0]),
+        np.mean(coord_list[medframe_index][:, 1]),
+        unit="deg",
+    )
+    target_altaz = target.transform_to(AltAz(obstime=time, location=bear_mountain))
     target_airmass = target_altaz.secz
     df_info = df_info.assign(airmass=target_airmass)
 

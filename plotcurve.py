@@ -18,8 +18,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
     """Input catalog file from catmerge (.pkl)"""
     if not Path(input_file_name).is_file():
         print("File not found!")
-        return 
-
+        return
 
     mergecat_dict = pickle.load(open(input_file_name, "rb"))
 
@@ -172,7 +171,6 @@ def cli(input_file_name, magtype, noc, plot_flag):
 
     if plot_flag:
         plot_lc(final_catfile_name)
-
 
 
 def coord_to_str(ra, dec):
@@ -379,7 +377,10 @@ def plot_lc(file_name):
             xlabel = "MJD"
             if mjd_index == -1:
                 title = "#: {0:4d}  M = {1:.2f}  RA: {3}  DEC: {4}  MJD+{2:d}".format(
-                    star_index, ommag[star_index], int(min(lc.amjd)), *coord_to_str(coord[star_index][0], coord[star_index][1])
+                    star_index,
+                    ommag[star_index],
+                    int(min(lc.amjd)),
+                    *coord_to_str(coord[star_index][0], coord[star_index][1])
                 )
             else:
                 title = "#: {0:4d}  M = {1:.2f}  RA: {5}  DEC: {6}    MJD+{2:d} ({3}/{4})".format(
@@ -387,7 +388,8 @@ def plot_lc(file_name):
                     ommag[star_index],
                     int(min(lc.amjd)),
                     mjd_index + 1,
-                    len(mjd_list), *coord_to_str(coord[star_index][0], coord[star_index][1])
+                    len(mjd_list),
+                    *coord_to_str(coord[star_index][0], coord[star_index][1])
                 )
             plt.scatter(x, y1, s=4, c="C0")
             plt.scatter(x, y2, s=4, c="C1")
@@ -401,7 +403,11 @@ def plot_lc(file_name):
             y1 = lc.mag
             y2 = lc.magx
             xlabel = "UT"
-            title = "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}".format(star_index, ommag[star_index], *coord_to_str(coord[star_index][0], coord[star_index][1]))
+            title = "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}".format(
+                star_index,
+                ommag[star_index],
+                *coord_to_str(coord[star_index][0], coord[star_index][1])
+            )
         ylabel = "Magnitude"
         plt.scatter(x, y1, s=4, c="C0")
         plt.scatter(x, y2, s=4, c="C1")
@@ -417,7 +423,11 @@ def plot_lc(file_name):
     y2 = lc.magx
     xlabel = "UT"
     ylabel = "Magnitude (mag)"
-    title = "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}".format(star_index, ommag[star_index], *coord_to_str(coord[star_index][0], coord[star_index][1]))
+    title = "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}".format(
+        star_index,
+        ommag[star_index],
+        *coord_to_str(coord[star_index][0], coord[star_index][1])
+    )
     ax.scatter(x, y1, s=4, c="C0")
     ax.scatter(x, y2, s=4, c="C1")
     ax.hlines(ommag[star_index], min(x), max(x), linestyles="dashed", colors="red")
@@ -426,6 +436,7 @@ def plot_lc(file_name):
     ax.set_title(title)
     fig.canvas.mpl_connect("key_press_event", on_key)
     plt.show()
+
 
 if __name__ == "__main__":
     cli()
