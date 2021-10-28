@@ -174,7 +174,18 @@ def cli(input_file_name, magtype, noc, plot_flag):
         plot_lc(final_catfile_name)
 
 
+
 def coord_to_str(ra, dec):
+    """Transfer coord into str
+
+    Args:
+        ra (float): RA in deg
+        dec (float): DEC in deg
+
+    Returns:
+        ra_str (str): RA str
+        dec_str (str): DEC str
+    """
     rah = int(ra / 15)
     ram = int((ra * 60 / 15 - rah * 60))
     ras = ra * 240 - rah * 3600 - ram * 60
@@ -187,6 +198,17 @@ def coord_to_str(ra, dec):
 
 
 def save_single_phot(input_file_name, magtype, star_index, amjd, coord, magmatch, magx):
+    """Save single star's photometry into file
+
+    Args:
+        input_file_name (str): input catalog pkl file name
+        magtype (str): magtype input
+        star_index (int): index of the star
+        amjd (array): AMJD
+        coord (array): 2D coords array
+        magmatch (array): inpur photometry array
+        magx (array): corrected photometry array
+    """
     ra_str, dec_str = coord_to_str(coord[star_index][0], coord[star_index][1])
     orig_file_name = "{0}.{1}{3}S{2:0>4d}.orig".format(
         input_file_name.split(".")[0],
@@ -236,6 +258,20 @@ def save_single_phot(input_file_name, magtype, star_index, amjd, coord, magmatch
 
 
 def prepare_lc_df(star_index, df_info, magmatch, magx):
+    """Prepare cleaned light curve data
+
+    Add mag, mag_err, magx, and magx_err to info
+    Remove nan values or too bright values in magx
+
+    Args:
+        star_index (int): index of the star
+        df_info (DataFrame): info data
+        magmatch (array): raw photometry array
+        magx (array): corrected photometry array
+
+    Returns:
+        lc (array): light curve data
+    """
     lc = df_info.copy()
     lc = lc.assign(mag=magmatch[star_index, :, 0])
     lc = lc.assign(mag_err=magmatch[star_index, :, 1])
@@ -246,6 +282,17 @@ def prepare_lc_df(star_index, df_info, magmatch, magx):
 
 
 def plot_lc(file_name):
+    """Plot light curve
+
+    Keyboard interaction:
+    n: next star; next day (day mode)
+    N: previous star; previous day (day mode)
+    d: switch day mode
+    s: save the data of this star 
+
+    Args:
+        file_name (str): pkl file name with magx
+    """
     if "s" in plt.rcParams["keymap.save"]:
         plt.rcParams["keymap.save"].remove("s")
     mergecat_dict = pickle.load(open(file_name, "rb"))
