@@ -294,29 +294,52 @@ def read_cat_and_info(file_name):
     return cat, info_dict
 
 
-def find_medframe_index(info_dict_list, medframe_factor):
+def find_medframe_index(df_info, medframe_factor):
     """Find the index of reference frame which has medframe_factor times the mean number of stars
 
     Args:
-        catfile_list (list): list of catfile name
+        df_info (DataFrame): info
+        medframe_factor (float): number ratio
 
     Returns:
         medframe_index: index of medframe in catfile_list
     """
-    nc = list()
-    for info_dict in info_dict_list:
-        nc.append(info_dict["nstar"])
+    nc = df_info.star
     nfmean = medframe_factor * np.sum(nc) / len(nc)
     medframe_index = np.argmin(np.abs(nc - np.sum(nc) / len(nc) * medframe_factor))
     print(
         "# frames: {0:3d}  Std frame: {1}  # Stars: {2:3d}".format(
-            len(info_dict_list),
-            info_dict_list[medframe_index]["file_name"],
-            info_dict_list[medframe_index]["nstar"],
+            len(df_info),
+            df_info.iloc[medframe_index]["file_name"],
+            df_info.iloc[medframe_index]["nstar"],
         )
     )
     return medframe_index
 
+def find_medframe_index_airmass(df_info):
+    """Find the index of reference frame which has the least airmass
+
+    Args:
+        df_info (DataFrame): info
+
+    Returns:
+        medframe_index: index of medframe in catfile_list
+    """
+    medframe_index = df_info['airmass'].values.argmin()
+    print(
+            "# frames: {0:3d}  Std frame: {1}  # Stars: {2:3d}  airmass: {3:.2f}".format(
+            len(df_info),
+            df_info.iloc[medframe_index]["file_name"],
+            df_info.iloc[medframe_index]["nstar"],
+            df_info.iloc[medframe_index]["airmass"]
+        )
+    )
+
+
+
+
+
 
 if __name__ == "__main__":
     cli()
+
