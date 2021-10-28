@@ -317,6 +317,7 @@ def plot_lc(file_name):
     Args:
         file_name (str): pkl file name with magx
     """
+    print("Plotting ...")
     if "s" in plt.rcParams["keymap.save"]:
         plt.rcParams["keymap.save"].remove("s")
     mergecat_dict = pickle.load(open(file_name, "rb"))
@@ -441,6 +442,8 @@ def plot_lc(file_name):
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.title(title)
+        plt.ylim(min(y2) - 0.05, max(y2) + 0.05)
+        plt.gca().invert_yaxis()
         plt.draw()
 
     fig, ax = plt.subplots(1, 1)
@@ -460,6 +463,8 @@ def plot_lc(file_name):
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Magnitude")
     ax.set_title(title)
+    ax.set_ylim(min(y2) - 0.05, max(y2) + 0.05)
+    ax.invert_yaxis()
     fig.canvas.mpl_connect("key_press_event", on_key)
     plt.show()
 
