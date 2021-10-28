@@ -50,8 +50,24 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
         cat_list.append(cat)
         info_dict_list.append(info_dict)
         coord_list.append(cat[:, 18:20].astype(float))
+    df_info = pd.DataFrame(info_dict_list)
 
-    medframe_index = find_medframe_index(info_dict_list, medframe_factor)
+    # Calculate airmass
+    bear_mountain = EarthLocation(
+        lat=37.373 * u.deg, lon=97.56 * u.deg, height=3200 * u.m
+    )
+    time = Time(df_info["start_time"])  # should use mid time
+
+    target = SkyCoord(
+        np.mean(coord_list[0][:, 0]),
+        np.mean(coord_list[0][:, 1]),
+        unit="deg",
+    )
+    target_altaz = target.transform_to(AltAz(obstime=time, location=bear_mountain))
+    target_airmass = target_altaz.secz
+    df_info = df_info.assign(airmass=target_airmass)
+
+    medframe_index = find_medframe_index_airmass(df_info)
     cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
 
     # Merge the catalogs
@@ -84,24 +100,9 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
             if match_flag == False:
                 nomatch[j] += 1
 
-    df_info = pd.DataFrame(info_dict_list)
     ndate = len(set(df_info["mjd"]))
     print("{0} of nights processed!".format(ndate))
 
-    # Calculate airmass
-    bear_mountain = EarthLocation(
-        lat=37.373 * u.deg, lon=97.56 * u.deg, height=3200 * u.m
-    )
-    time = Time(df_info["start_time"])  # should use mid time
-
-    target = SkyCoord(
-        np.mean(coord_list[medframe_index][:, 0]),
-        np.mean(coord_list[medframe_index][:, 1]),
-        unit="deg",
-    )
-    target_altaz = target.transform_to(AltAz(obstime=time, location=bear_mountain))
-    target_airmass = target_altaz.secz
-    df_info = df_info.assign(airmass=target_airmass)
 
     # Write merged uncalibrated data into a file
     if ndate > 1:
@@ -334,6 +335,7 @@ def find_medframe_index_airmass(df_info):
             df_info.iloc[medframe_index]["airmass"]
         )
     )
+    return medframe_index
 
 
 
