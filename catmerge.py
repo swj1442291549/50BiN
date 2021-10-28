@@ -59,9 +59,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     time = Time(df_info["start_time"])  # should use mid time
 
     target = SkyCoord(
-        np.mean(coord_list[0][:, 0]),
-        np.mean(coord_list[0][:, 1]),
-        unit="deg",
+        np.mean(coord_list[0][:, 0]), np.mean(coord_list[0][:, 1]), unit="deg",
     )
     target_altaz = target.transform_to(AltAz(obstime=time, location=bear_mountain))
     target_airmass = target_altaz.secz
@@ -102,7 +100,6 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
 
     ndate = len(set(df_info["mjd"]))
     print("{0} of nights processed!".format(ndate))
-
 
     # Write merged uncalibrated data into a file
     if ndate > 1:
@@ -317,6 +314,7 @@ def find_medframe_index(df_info, medframe_factor):
     )
     return medframe_index
 
+
 def find_medframe_index_airmass(df_info):
     """Find the index of reference frame which has the least airmass
 
@@ -326,22 +324,17 @@ def find_medframe_index_airmass(df_info):
     Returns:
         medframe_index: index of medframe in catfile_list
     """
-    medframe_index = df_info['airmass'].values.argmin()
+    medframe_index = df_info["airmass"].values.argmin()
     print(
-            "# frames: {0:3d}  Std frame: {1}  # Stars: {2:3d}  airmass: {3:.2f}".format(
+        "# frames: {0:3d}  Std frame: {1}  # Stars: {2:3d}  airmass: {3:.2f}".format(
             len(df_info),
             df_info.iloc[medframe_index]["file_name"],
             df_info.iloc[medframe_index]["nstar"],
-            df_info.iloc[medframe_index]["airmass"]
+            df_info.iloc[medframe_index]["airmass"],
         )
     )
     return medframe_index
 
 
-
-
-
-
 if __name__ == "__main__":
     cli()
-

@@ -89,7 +89,9 @@ def cli(input_file_name, magtype, noc, plot_flag):
     else:
         magmatch = psfmagmatch
 
-    magx, ommag, ommag_err = differential_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nframe)
+    magx, ommag, ommag_err = differential_correct_phot(
+        magmatch, nstar, df_info, ncs, medframe_index, nframe
+    )
 
     # Save average magnitude for each star
     mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
@@ -128,8 +130,10 @@ def cli(input_file_name, magtype, noc, plot_flag):
     if plot_flag:
         plot_lc(final_catfile_name)
 
+
 def airmass_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nframe):
     pass
+
 
 def differential_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nframe):
     """Correct photometry via differential method
