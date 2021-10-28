@@ -1,5 +1,4 @@
 import pickle
-from sys import exit
 from pathlib import Path
 from operator import itemgetter
 from matplotlib import pyplot as plt
@@ -18,7 +17,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
     """Input catalog file from catmerge (.pkl)"""
     if not Path(input_file_name).is_file():
         print("File not found!")
-        exit()
+        return 
 
 
     mergecat_dict = pickle.load(open(input_file_name, "rb"))
@@ -29,7 +28,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
             plot_lc(input_file_name)
             return
         else:
-            exit()
+            return
 
     (
         nframe,
@@ -68,7 +67,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
         ncs = [int(list(filter(None, line.split(" ")))[2]) for line in lines]
     if len(ncs) < noc:
         print("too few std stars selected")
-        exit()
+        return
     else:
         ncs = ncs[:noc]
         print("Std tot: {0:d}".format(noc))
@@ -247,8 +246,6 @@ def prepare_lc_df(star_index, df_info, magmatch, magx):
 def plot_lc(file_name):
     if "s" in plt.rcParams["keymap.save"]:
         plt.rcParams["keymap.save"].remove("s")
-    if "g" in plt.rcParams["keymap.grid"]:
-        plt.rcParams["keymap.save"].remove("g")
     mergecat_dict = pickle.load(open(file_name, "rb"))
     (
         nframe,
@@ -321,10 +318,6 @@ def plot_lc(file_name):
             mday_flag = not mday_flag
             if not mday_flag:
                 mjd_index = -1
-        elif event.key == 'g':
-            print(34)
-            star_index = 34
-            pass
 
         plt.clf()
         lc = prepare_lc_df(star_index, df_info, magmatch, magx)
