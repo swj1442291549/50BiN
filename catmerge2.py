@@ -46,13 +46,14 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     print("Reading data ... ")
     for k in tqdm(range(nframe)):
         cat, info_dict = read_cat_and_info(catfile_list[k])
-        cat = cat.to_numpy()
         cat_list.append(cat)
         info_dict_list.append(info_dict)
         coord_list.append(cat[:, 18:20].astype(float))
     frame_info = pd.DataFrame(info_dict_list)
-    mjd_day_list = np.sort(list(set(frame_info.mjd)))  
-    nframe_day_list = [len(frame_info[frame_info.mjd == mjd_day]) for mjd_day in mjd_day_list]
+    mjd_date_list = np.sort(list(set(frame_info.mjd)))  
+    nframe_date_list = [len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list]
+    ndate = len(mjd_date_list)
+    print("Read {0:d} frames of {1:d} nights".format(nframe, ndate))
 
     # Calculate airmass
     bear_mountain = EarthLocation(
@@ -67,8 +68,8 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     frame_info = frame_info.assign(airmass=target_airmass)
 
     medframe_index = find_medframe_index(frame_info, medframe_index)
-    cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
     nstar = frame_info.loc[medframe_index]["nstar"]
+    cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
 
     # Merge the catalogs
     # Use medframe as a reference, looking for each stars in all other frames by matching coordinates
@@ -100,8 +101,91 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
             if match_flag == False:
                 nomatch[j] += 1
 
-    ndate = len(set(frame_info["mjd"]))
-    print("{0} of nights processed!".format(ndate))
+
+
+    # Define standard candidate stars for differential photometry
+    nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
+    calib_flag = True
+    while calib_flag:
+        ic = 1
+        istd = list()
+        for j in range(nstar):
+            if nomatch[j] > nmlim:
+                continue
+            if np.isnan(psfmagmatch[j, medframe_index, 0]) and np.isnan(apmagmatch[j, medframe_index, 0]):
+                continue
+            istd.append(j)
+            ic += 1
+            if ic > int(nstar * 0.2):
+                ic -= 1
+                calib_flag = False
+                break
+        if ic < int(nstar * 0.1):
+            nmlim *= 2
+
+    # Find non-variable candidate stars for differential photometry
+    with open("std.dat", "w") as f:
+        sigm = np.zeros((ic, ic)) * np.nan
+        for k1 in range(ic):
+            j1 = istd[k1]
+            for k2 in range(k1 + 1, ic - 1):
+                j2 = istd[k2]
+                m1 = psfmagmatch[j1, :, 0]
+                m2 = psfmagmatch[j2, :, 0]
+                dm = (m1 - m2)  # Magnitude difference between j1 and j2
+                idm = len(dm[~np.isnan(dm)])  # Number of frame with non-nan records
+                sdm = np.nanmean(dm)  # Average magnitude difference
+                sig = np.nansum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
+                sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
+                if sigm[k1, k2] < sdev:
+                    f.write(
+                        "{0:3d} {1:3d} {2:3d} {3:4d} {4:.10f}\n".format(
+                            k1, k2, nomatch[j2], idm, sigm[k1, k2]
+                        )
+                    )
+
+    with open("std.dat", "r") as f:
+        lines = f.readlines()
+        kstd1 = [int(list(filter(None, line.split(" ")))[0]) for line in lines]
+        kstd2 = [int(list(filter(None, line.split(" ")))[1]) for line in lines]
+        icc = len(kstd1)
+
+    ncs = list()
+    with open("mdev.dat", "w") as f:
+        k = 0
+        for i in range(ic):
+            for j in range(icc):
+                if i == kstd2[j]:
+                    f.write("{0:10d} {1:10d} {2:10d}\n".format(k, ic, istd[i]))
+                    k += 1
+                    ncs.append(istd[i])
+                    break
+        kcc = k
+    print("# Std Stars: {0:d}".format(len(ncs)))
+    stdframe_index_date_list = list()
+    for i in range(ndate):
+        ncs_apmagmatch_mag_date = apmagmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0]
+        ncs_apmagmatch_magshift_date = np.subtract(ncs_apmagmatch_mag_date.T, np.nanmean(ncs_apmagmatch_mag_date, axis=1)).T
+        ncs_apmagmatch_magmean_date = np.nanmean(ncs_apmagmatch_magshift_date, axis=0)
+        smoothen = 5
+        x_ncs_apmagmatch_magmean_date = np.pad(ncs_apmagmatch_magmean_date, (smoothen//2, smoothen-smoothen//2), mode='edge')
+        x_ncs_apmagmatch_magmean_date = np.cumsum(x_ncs_apmagmatch_magmean_date[smoothen:] - x_ncs_apmagmatch_magmean_date[:-smoothen]) / smoothen
+        stdframe_index_date_list.append(x_ncs_apmagmatch_magmean_date.argmin() + int(sum(nframe_date_list[:i])))
+
+
+    with open("stdstar0.dat", "w") as f:
+        for j in range(kcc):
+            f.write(
+                "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
+                    coord_list[medframe_index][j, 0],
+                    coord_list[medframe_index][j, 1],
+                    apmagmatch[j, medframe_index, 0],
+                    apmagmatch[j, medframe_index, 1],
+                    psfmagmatch[j, medframe_index, 0],
+                    psfmagmatch[j, medframe_index, 1],
+                )
+            )
+
 
     # Write merged uncalibrated data into a file
     if ndate > 1:
@@ -120,89 +204,16 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
         "medframe_index": medframe_index,
         "medframe_nstar": info_dict_list[medframe_index]["nstar"],
         "ndate": ndate,
-        "df_info": df_info,
+        "frame_info": frame_info,
         "nomatch": nomatch,
         "coord": coord_list[medframe_index],
         "psfmagmatch": psfmagmatch,
         "apmagmatch": apmagmatch,
+        "stdframe_index_date_list": stdframe_index_date_list,
+        "nframe_date_list": nframe_date_list,
+        "mjd_date_list": mjd_date_list,
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
-
-    # Define standard candidate stars for differential photometry
-    nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
-    calib_flag = True
-    while calib_flag:
-        ic = 1
-        istd = list()
-        for j in range(info_dict_list[medframe_index]["nstar"]):
-            if nomatch[j] > nmlim:
-                continue
-            if (
-                psfmagmatch[j, medframe_index, 0] < 1
-                and apmagmatch[j, medframe_index, 0] < 1
-            ):
-                continue
-            istd.append(j)
-            ic += 1
-            if ic > 100:
-                ic -= 1
-                calib_flag = False
-                print("# Std star : {0}".format(ic))
-                break
-        if ic < 50:
-            nmlim *= 2
-
-    # Find non-variable candidate stars for differential photometry
-    with open("std.dat", "w") as f:
-        sigm = np.zeros((ic, ic))
-        for k1 in range(ic):
-            j1 = istd[k1]
-            for k2 in range(k1 + 1, ic - 1):
-                j2 = istd[k2]
-                m1 = psfmagmatch[j1, :, 0]
-                m2 = psfmagmatch[j2, :, 0]
-                dm = (m1 - m2) * np.abs(
-                    np.sign(m1 * m2)
-                )  # Magnitude difference between j1 and j2
-                idm = len(dm[(m1 * m2 != 0)])  # Number of frame with non-zero records
-                sdm = np.sum(dm) / idm  # Average magnitude difference
-                sig = np.sum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
-                sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
-                if sigm[k1, k2] < sdev:
-                    f.write(
-                        "{0:3d} {1:3d} {2:3d} {3:4d} {4:.10f}\n".format(
-                            k1, k2, nomatch[j2], idm, sigm[k1, k2]
-                        )
-                    )
-
-    with open("std.dat", "r") as f:
-        lines = f.readlines()
-        kstd1 = [int(list(filter(None, line.split(" ")))[0]) for line in lines]
-        kstd2 = [int(list(filter(None, line.split(" ")))[1]) for line in lines]
-        icc = len(kstd1)
-
-    with open("mdev.dat", "w") as f:
-        k = 0
-        for i in range(ic):
-            for j in range(icc):
-                if i == kstd2[j]:
-                    f.write("{0:10d} {1:10d} {2:10d}\n".format(k, ic, istd[i]))
-                    k += 1
-                    break
-        kcc = k
-
-    with open("stdstar0.dat", "w") as f:
-        for j in range(kcc):
-            f.write(
-                "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
-                    coord_list[j][medframe_index, 0],
-                    coord_list[j][medframe_index, 1],
-                    apmagmatch[j, medframe_index, 0],
-                    apmagmatch[j, medframe_index, 1],
-                    psfmagmatch[j, medframe_index, 0],
-                    psfmagmatch[j, medframe_index, 1],
-                )
-            )
 
 
 def read_cat_and_info(file_name):
@@ -353,169 +364,3 @@ if __name__ == "__main__":
     sdev = 0.006
 
 
-    file_list_byte = subprocess.check_output(
-        "ls *.allmag{0}".format(phot_flag), shell=True
-    )
-    catfile_list = list(filter(None, file_list_byte.decode("utf8").split("\n")))
-    nframe = len(catfile_list)
-
-    # Reading out all individual catalogs into cat_list, info_dict_list, coord_list
-    cat_list = list()
-    info_dict_list = list()
-    coord_list = list()
-    print("Reading data ... ")
-    for k in tqdm(range(nframe)):
-        cat, info_dict = read_cat_and_info(catfile_list[k])
-        cat_list.append(cat)
-        info_dict_list.append(info_dict)
-        coord_list.append(cat[:, 18:20].astype(float))
-    frame_info = pd.DataFrame(info_dict_list)
-    mjd_day_list = np.sort(list(set(frame_info.mjd)))  
-    nframe_day_list = [len(frame_info[frame_info.mjd == mjd_day]) for mjd_day in mjd_day_list]
-    ndate = len(mjd_day_list)
-    print("Read {0:d} frames of {1:d} nights".format(nframe, ndate))
-
-    # Calculate airmass
-    bear_mountain = EarthLocation(
-        lat=37.373 * u.deg, lon=97.56 * u.deg, height=3200 * u.m
-    )
-    time = Time(frame_info["start_time"])  # should use mid time
-    target = SkyCoord(
-        np.mean(coord_list[0][:, 0]), np.mean(coord_list[0][:, 1]), unit="deg",
-    )
-    target_altaz = target.transform_to(AltAz(obstime=time, location=bear_mountain))
-    target_airmass = target_altaz.secz
-    frame_info = frame_info.assign(airmass=target_airmass)
-
-    medframe_index = find_medframe_index(frame_info, medframe_index)
-    nstar = frame_info.loc[medframe_index]["nstar"]
-    cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
-
-    # Merge the catalogs
-    # Use medframe as a reference, looking for each stars in all other frames by matching coordinates
-    apmagmatch = np.zeros((nstar, nframe, 2)) * np.nan
-    psfmagmatch = np.zeros((nstar, nframe, 2)) * np.nan
-    nomatch = np.zeros(nstar).astype(int)
-    print("Matching stars ... ")
-    for j in tqdm(range(nstar)):
-        ra0, dec0 = coord_list[medframe_index][j]
-        for k in range(nframe):
-            match_flag = False
-            if k != medframe_index:
-                sep = np.sqrt(
-                    (ra0 - coord_list[k][:, 0]) ** 2 + (dec0 - coord_list[k][:, 1]) ** 2
-                )
-                if np.min(sep) < dmatch / 3600:
-                    match_flag = True
-                    cat = cat_list[k]
-                    i = np.argmax(sep < dmatch / 3600)
-                    apmagmatch[j, k, :] = cat[i, 11:13]
-                    psfmagmatch[j, k, :] = cat[i, 7:9]
-
-            else:
-                cat = cat_list[k]
-                apmagmatch[j, k, 0] = cat[j, 11]
-                apmagmatch[j, k, 1] = cat[j, 12]
-                psfmagmatch[j, k, 0] = cat[j, 7]
-                psfmagmatch[j, k, 1] = cat[j, 8]
-            if match_flag == False:
-                nomatch[j] += 1
-
-
-
-    # Define standard candidate stars for differential photometry
-    nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
-    calib_flag = True
-    while calib_flag:
-        ic = 1
-        istd = list()
-        for j in range(nstar):
-            if nomatch[j] > nmlim:
-                continue
-            if np.isnan(psfmagmatch[j, medframe_index, 0]) and np.isnan(apmagmatch[j, medframe_index, 0]):
-                continue
-            istd.append(j)
-            ic += 1
-            if ic > int(nstar * 0.2):
-                ic -= 1
-                calib_flag = False
-                break
-        if ic < int(nstar * 0.1):
-            nmlim *= 2
-
-    # Find non-variable candidate stars for differential photometry
-    with open("std.dat", "w") as f:
-        sigm = np.zeros((ic, ic))
-        for k1 in range(ic):
-            j1 = istd[k1]
-            for k2 in range(k1 + 1, ic - 1):
-                j2 = istd[k2]
-                m1 = psfmagmatch[j1, :, 0]
-                m2 = psfmagmatch[j2, :, 0]
-                dm = (m1 - m2)  # Magnitude difference between j1 and j2
-                idm = len(dm[~np.isnan(dm)])  # Number of frame with non-nan records
-                sdm = np.nanmean(dm)  # Average magnitude difference
-                sig = np.sum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
-                sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
-                if sigm[k1, k2] < sdev:
-                    f.write(
-                        "{0:3d} {1:3d} {2:3d} {3:4d} {4:.10f}\n".format(
-                            k1, k2, nomatch[j2], idm, sigm[k1, k2]
-                        )
-                    )
-
-    with open("std.dat", "r") as f:
-        lines = f.readlines()
-        kstd1 = [int(list(filter(None, line.split(" ")))[0]) for line in lines]
-        kstd2 = [int(list(filter(None, line.split(" ")))[1]) for line in lines]
-        icc = len(kstd1)
-
-    with open("mdev.dat", "w") as f:
-        k = 0
-        for i in range(ic):
-            for j in range(icc):
-                if i == kstd2[j]:
-                    f.write("{0:10d} {1:10d} {2:10d}\n".format(k, ic, istd[i]))
-                    k += 1
-                    break
-        kcc = k
-
-    with open("stdstar0.dat", "w") as f:
-        for j in range(kcc):
-            f.write(
-                "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
-                    coord_list[medframe_index][j, 0],
-                    coord_list[medframe_index][j, 1],
-                    apmagmatch[j, medframe_index, 0],
-                    apmagmatch[j, medframe_index, 1],
-                    psfmagmatch[j, medframe_index, 0],
-                    psfmagmatch[j, medframe_index, 1],
-                )
-            )
-
-
-
-    # Write merged uncalibrated data into a file
-    if ndate > 1:
-        mergecat_file_name = "{0}ALL_{1}.{2}gcat.pkl".format(
-            info_dict_list[0]["file_name"][1:6],
-            info_dict_list[0]["file_name"][12:13],
-            phot_flag,
-        )
-    else:
-        mergecat_file_name = "{0}.{1}gcat.pkl".format(
-            info_dict_list[0]["file_name"][1:13], phot_flag
-        )
-
-    mergecat_dict = {
-        "nframe": nframe,
-        "medframe_index": medframe_index,
-        "medframe_nstar": info_dict_list[medframe_index]["nstar"],
-        "ndate": ndate,
-        "frame_info": frame_info,
-        "nomatch": nomatch,
-        "coord": coord_list[medframe_index],
-        "psfmagmatch": psfmagmatch,
-        "apmagmatch": apmagmatch,
-    }
-    pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
