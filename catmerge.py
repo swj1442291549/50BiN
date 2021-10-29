@@ -209,7 +209,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
         "mjd_date_list": mjd_date_list, # MJD of each date
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
-    print("Save python pickle data in {0}.".format(mergecat_file_name))
+    print("Save python pickle data in {0}".format(mergecat_file_name))
 
 
 def read_obs_location(obs_flag):
