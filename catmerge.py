@@ -193,8 +193,8 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
         for j in range(kcc):
             f.write(
                 "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
-                    coord_list[j][medframe_index, 0],
-                    coord_list[j][medframe_index, 1],
+                    coord_list[medframe_index][j, 0],
+                    coord_list[medframe_index][j, 1],
                     apmagmatch[j, medframe_index, 0],
                     apmagmatch[j, medframe_index, 1],
                     psfmagmatch[j, medframe_index, 0],
