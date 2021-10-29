@@ -442,6 +442,12 @@ def plot_lc(file_name):
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.title(title)
+        print("#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}   ##: {4:d}".format(
+            star_index,
+            ommag[star_index],
+            *coord_to_str(coord[star_index][0], coord[star_index][1]),
+            len(lc)
+        ))
         plt.ylim(min(y2) - 0.05, max(y2) + 0.05)
         plt.gca().invert_yaxis()
         plt.draw()
@@ -457,6 +463,12 @@ def plot_lc(file_name):
         ommag[star_index],
         *coord_to_str(coord[star_index][0], coord[star_index][1])
     )
+    print("#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}   ##: {4:d}".format(
+        star_index,
+        ommag[star_index],
+        *coord_to_str(coord[star_index][0], coord[star_index][1]),
+        len(lc)
+    ))
     ax.scatter(x, y1, s=4, c="C0")
     ax.scatter(x, y2, s=4, c="C1")
     ax.hlines(ommag[star_index], min(x), max(x), linestyles="dashed", colors="red")
