@@ -32,7 +32,13 @@ from tqdm import tqdm
     default=1.2,
     help="A factor on average star number in a frame for reference frame selection",
 )
-def cli(phot_flag, dmatch, sdev, medframe_factor):
+@click.option(
+    "--obs_flag",
+    type=str,
+    default="d",
+    help="Observatory flag. 'd': Delingha; 'l': Lenghu",
+)
+def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
     file_list_byte = subprocess.check_output(
         "ls *.allmag{0}".format(phot_flag), shell=True
     )
@@ -56,14 +62,12 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     print("Read {0:d} frames of {1:d} nights".format(nframe, ndate))
 
     # Calculate airmass
-    bear_mountain = EarthLocation(
-        lat=37.373 * u.deg, lon=97.56 * u.deg, height=3200 * u.m
-    )
+    mountain = read_obs_location(obs_flag)
     time = Time(frame_info["start_time"])  # should use mid time
     target = SkyCoord(
         np.mean(coord_list[0][:, 0]), np.mean(coord_list[0][:, 1]), unit="deg",
     )
-    target_altaz = target.transform_to(AltAz(obstime=time, location=bear_mountain))
+    target_altaz = target.transform_to(AltAz(obstime=time, location=mountain))
     target_airmass = target_altaz.secz
     frame_info = frame_info.assign(airmass=target_airmass)
 
@@ -100,7 +104,6 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
                 psfmagmatch[j, k, 1] = cat[j, 8]
             if match_flag == False:
                 nomatch[j] += 1
-
 
 
     # Define standard candidate stars for differential photometry
@@ -214,6 +217,26 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
         "mjd_date_list": mjd_date_list,
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
+
+
+def read_obs_location(obs_flag):
+    """Read Earthlocation for different observatory
+
+    Args:
+        obs_flag (str): observatory flag. "d" for Delingha; "l" for Lenghu
+
+    Returns:
+        mountain (EarthLocation): cite location on the Earth
+    """
+    if obs_flag == "d":
+        mountain = EarthLocation(
+            lat=37.373 * u.deg, lon=97.56 * u.deg, height=3200 * u.m
+        )
+    elif obs_flag == "l":
+        mountain = EarthLocation(
+            lat=38.6068 * u.deg, lon=93.8961 * u.deg, height=4200 * u.m
+        )
+
 
 
 def read_cat_and_info(file_name):
