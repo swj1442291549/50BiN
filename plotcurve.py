@@ -12,7 +12,7 @@ from tqdm import tqdm
 @click.option(
     "--magtype", type=str, default="a", help="magnitude type. a: aperture; p: psf"
 )
-@click.option("--noc", type=int, default=20, help="Number of selected standard stars")
+@click.option("--noc", type=int, default=10, help="Number of selected standard stars")
 @click.option("--plot_flag", type=bool, default=True, help="Enter interactive plot")
 def cli(input_file_name, magtype, noc, plot_flag):
     """Input catalog file from catmerge (.pkl)"""
@@ -40,16 +40,24 @@ def cli(input_file_name, magtype, noc, plot_flag):
         coord,
         psfmagmatch,
         apmagmatch,
+        bestframe_index_date_list,
+        nframe_date_list,
+        mjd_date_list,
+        ncs
     ) = itemgetter(
         "nframe",
         "medframe_index",
-        "medframe_nstar",
+        "nstar",
         "ndate",
         "frame_info",
         "nomatch",
         "coord",
         "psfmagmatch",
         "apmagmatch",
+        "bestframe_index_date_list",
+        "nframe_date_list",
+        "mjd_date_list",
+        "ncs"
     )(
         mergecat_dict
     )
@@ -60,11 +68,6 @@ def cli(input_file_name, magtype, noc, plot_flag):
 
     print("total number of stars: {0:d}".format(nstar))
 
-    with open("mdev.dat", "r") as f:
-        lines = f.readlines()
-        i1 = [int(list(filter(None, line.split(" ")))[0]) for line in lines]
-        i2 = [int(list(filter(None, line.split(" ")))[1]) for line in lines]
-        ncs = [int(list(filter(None, line.split(" ")))[2]) for line in lines]
     if len(ncs) < noc:
         print("too few std stars selected")
         return
@@ -74,15 +77,6 @@ def cli(input_file_name, magtype, noc, plot_flag):
         for i in range(noc):
             print("{0:3d} Std star ID: {1:4d}".format(i, ncs[i]))
 
-    ut1 = (
-        frame_info.mid_time.iloc[0]
-        - (frame_info.mid_time.iloc[nframe - 1] - frame_info.mid_time.iloc[0]) / 30
-    )
-    ut2 = (
-        frame_info.mid_time.iloc[nframe - 1]
-        + (frame_info.mid_time.iloc[nframe - 1] - frame_info.mid_time.iloc[0]) / 30
-    )
-    amjd = frame_info.mjd + frame_info.mid_time / 24 - 0.5
 
     if magtype == "a":
         magmatch = apmagmatch
@@ -470,4 +464,126 @@ def plot_lc(file_name):
 
 
 if __name__ == "__main__":
-    cli()
+    # cli()
+
+    input_file_name = "N2301ALL_B.0gcat.pkl"
+    plot_flag = False
+    noc = 10
+    magtype = "a"
+
+
+    """Input catalog file from catmerge (.pkl)"""
+    # if not Path(input_file_name).is_file():
+    #     print("File not found!")
+    #     return
+
+    mergecat_dict = pickle.load(open(input_file_name, "rb"))
+
+    # if "magx" in mergecat_dict.keys():
+    #     print("This catalog has alreadly contained corrected photometry")
+    #     if plot_flag:
+    #         plot_lc(input_file_name)
+    #         return
+    #     else:
+    #         return
+
+    (
+        nframe,
+        medframe_index,
+        nstar,
+        ndate,
+        frame_info,
+        nomatch,
+        coord,
+        psfmagmatch,
+        apmagmatch,
+        bestframe_index_date_list,
+        nframe_date_list,
+        mjd_date_list,
+        ncs
+    ) = itemgetter(
+        "nframe",
+        "medframe_index",
+        "nstar",
+        "ndate",
+        "frame_info",
+        "nomatch",
+        "coord",
+        "psfmagmatch",
+        "apmagmatch",
+        "bestframe_index_date_list",
+        "nframe_date_list",
+        "mjd_date_list",
+        "ncs"
+    )(
+        mergecat_dict
+    )
+
+    frame_info = frame_info.assign(
+        amjd=frame_info.mjd + frame_info.mid_time / 24 - 0.5
+    )  # convert observing time to modified julian day AMJD(1-nf)
+
+    print("total number of stars: {0:d}".format(nstar))
+
+    if len(ncs) < noc:
+        print("too few std stars selected")
+        # return
+    else:
+        ncs = ncs[:noc]
+        print("Std tot: {0:d}".format(noc))
+        for i in range(noc):
+            print("{0:3d} Std star ID: {1:4d}".format(i, ncs[i]))
+
+    if magtype == "a":
+        magmatch = apmagmatch
+    else:
+        magmatch = psfmagmatch
+
+    ncs_magmatch_delta = np.copy(magmatch[ncs, :, 0])
+    for i in range(ndate):
+        ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[ncs, bestframe_index_date_list[i], 0]).T
+
+
+
+
+
+
+
+
+    # magx, ommag, ommag_err = differential_correct_phot(
+    #     magmatch, nstar, frame_info, ncs, medframe_index, nframe
+    # )
+
+    # # Save average magnitude for each star
+    # mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
+    #     input_file_name.split(".")[0], input_file_name.split(".")[1][0], magtype
+    # )
+    # with open(mmag_catfile_name, "w") as f:
+    #     for i in range(nstar):
+    #         f.write(
+    #             "{0:5d} {1:15.8f} {2:15.8f} {3:10.5f} {4:10.5f}\n".format(
+    #                 i, coord[i, 0], coord[i, 1], ommag[i], ommag_err[i]
+    #             )
+    #         )
+
+    # # Save final catalog
+    # final_catfile_name = "{0}.{1}{2}gcat_cal.pkl".format(
+    #     input_file_name.split(".")[0], input_file_name.split(".")[1][0], magtype
+    # )
+
+    # mergecat_dict = {
+    #     "nframe": nframe,
+    #     "medframe_index": medframe_index,
+    #     "medframe_nstar": nstar,
+    #     "ndate": ndate,
+    #     "frame_info": frame_info,
+    #     "nomatch": nomatch,
+    #     "coord": coord,
+    #     "psfmagmatch": psfmagmatch,
+    #     "apmagmatch": apmagmatch,
+    #     "magtype": magtype,
+    #     "magx": magx,
+    #     "ommag": ommag,
+    #     "ommag_err": ommag_err,
+    # }
+    # pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
