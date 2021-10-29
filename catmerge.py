@@ -197,7 +197,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
     mergecat_dict = {
         "nframe": nframe, # number of frames
         "medframe_index": medframe_index, # index of the reference frame (used to match stars)
-        "medframe_nstar": info_dict_list[medframe_index]["nstar"], # number of stars in the reference frame
+        "nstar": info_dict_list[medframe_index]["nstar"], # number of stars in the reference frame
         "ndate": ndate, # number of MJD dates
         "frame_info": frame_info, # frame into data
         "nomatch": nomatch, # number of non-match frames
