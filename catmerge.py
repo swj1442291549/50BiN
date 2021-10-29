@@ -46,11 +46,13 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     print("Reading data ... ")
     for k in tqdm(range(nframe)):
         cat, info_dict = read_cat_and_info(catfile_list[k])
-        cat = cat.to_numpy()
-        cat_list.append(cat)
-        info_dict_list.append(info_dict)
-        coord_list.append(cat[:, 18:20].astype(float))
+        if cat is not None:
+            cat = cat.to_numpy()
+            cat_list.append(cat)
+            info_dict_list.append(info_dict)
+            coord_list.append(cat[:, 18:20].astype(float))
     df_info = pd.DataFrame(info_dict_list)
+    nframe = len(df_info)
 
     # Calculate airmass
     bear_mountain = EarthLocation(
@@ -248,6 +250,8 @@ def read_cat_and_info(file_name):
             "ID",
         ],
     )
+    if len(cat) == 0:
+        return None, None
     ra_s = cat.RA.str.split(":", expand=True)
     rah = pd.to_numeric(ra_s[0])
     ram = pd.to_numeric(ra_s[1])
