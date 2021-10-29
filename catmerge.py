@@ -127,44 +127,34 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
             nmlim *= 2
 
     # Find non-variable candidate stars for differential photometry
-    with open("std.dat", "w") as f:
-        sigm = np.zeros((ic, ic)) * np.nan
-        for k1 in range(ic):
-            j1 = istd[k1]
-            for k2 in range(k1 + 1, ic - 1):
-                j2 = istd[k2]
-                m1 = psfmagmatch[j1, :, 0]
-                m2 = psfmagmatch[j2, :, 0]
-                dm = (m1 - m2)  # Magnitude difference between j1 and j2
-                idm = len(dm[~np.isnan(dm)])  # Number of frame with non-nan records
-                sdm = np.nanmean(dm)  # Average magnitude difference
-                sig = np.nansum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
-                sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
-                if sigm[k1, k2] < sdev:
-                    f.write(
-                        "{0:3d} {1:3d} {2:3d} {3:4d} {4:.10f}\n".format(
-                            k1, k2, nomatch[j2], idm, sigm[k1, k2]
-                        )
-                    )
+    kstd1 = list()
+    kstd2 = list()
+    sigm = np.zeros((ic, ic)) * np.nan
+    for k1 in range(ic):
+        j1 = istd[k1]
+        for k2 in range(k1 + 1, ic - 1):
+            j2 = istd[k2]
+            m1 = psfmagmatch[j1, :, 0]
+            m2 = psfmagmatch[j2, :, 0]
+            dm = (m1 - m2)  # Magnitude difference between j1 and j2
+            idm = len(dm[~np.isnan(dm)])  # Number of frame with non-nan records
+            sdm = np.nanmean(dm)  # Average magnitude difference
+            sig = np.nansum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
+            sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
+            if sigm[k1, k2] < sdev:
+                kstd1.append(k1)
+                kstd2.append(k2)
 
-    with open("std.dat", "r") as f:
-        lines = f.readlines()
-        kstd1 = [int(list(filter(None, line.split(" ")))[0]) for line in lines]
-        kstd2 = [int(list(filter(None, line.split(" ")))[1]) for line in lines]
-        icc = len(kstd1)
+    icc = len(kstd1)
 
     ncs = list()
-    with open("mdev.dat", "w") as f:
-        k = 0
-        for i in range(ic):
-            for j in range(icc):
-                if i == kstd2[j]:
-                    f.write("{0:10d} {1:10d} {2:10d}\n".format(k, ic, istd[i]))
-                    k += 1
-                    ncs.append(istd[i])
-                    break
-        kcc = k
+    for i in range(ic):
+        for j in range(icc):
+            if i == kstd2[j]:
+                ncs.append(istd[i])
+                break
     print("# Std Stars: {0:d}".format(len(ncs)))
+
     stdframe_index_date_list = list()
     for i in range(ndate):
         ncs_apmagmatch_mag_date = apmagmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0]
@@ -177,7 +167,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
 
 
     with open("stdstar0.dat", "w") as f:
-        for j in range(kcc):
+        for j in range(len(ncs)):
             f.write(
                 "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
                     coord_list[medframe_index][j, 0],
@@ -217,6 +207,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
         "mjd_date_list": mjd_date_list, # MJD of each date
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
+    print("Save data in {0}.".format(mergecat_file_name))
 
 
 def read_obs_location(obs_flag):
