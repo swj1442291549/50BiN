@@ -68,7 +68,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
     df_info = df_info.assign(airmass=target_airmass)
 
     medframe_index = find_medframe_index_airmass(df_info)
-    cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
+    cat_ref, info_ref_dict = read_cat_and_info(df_info.loc[medframe_index]["file_name"])
 
     # Merge the catalogs
     # Use medframe as a reference, looking for each stars in all other frames by matching coordinates
