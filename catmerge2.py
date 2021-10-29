@@ -452,11 +452,9 @@ if __name__ == "__main__":
                 j2 = istd[k2]
                 m1 = psfmagmatch[j1, :, 0]
                 m2 = psfmagmatch[j2, :, 0]
-                dm = (m1 - m2) * np.abs(
-                    np.sign(m1 * m2)
-                )  # Magnitude difference between j1 and j2
-                idm = len(dm[(m1 * m2 != 0)])  # Number of frame with non-zero records
-                sdm = np.sum(dm) / idm  # Average magnitude difference
+                dm = (m1 - m2)  # Magnitude difference between j1 and j2
+                idm = len(dm[~np.isnan(dm)])  # Number of frame with non-nan records
+                sdm = np.nanmean(dm)  # Average magnitude difference
                 sig = np.sum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
                 sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
                 if sigm[k1, k2] < sdev:
