@@ -272,7 +272,12 @@ def read_cat_and_info(file_name):
     )
     mid_time = float(info_list[2])
     exp = float(info_list[1])
-    fwhm = float(info_list[3])
+    try:
+        fwhm = float(info_list[3])
+    except:
+        fwhm = np.nan
+    else:
+        pass
     aperture = float(info_list[4])
     dt = datetime.strptime(file_name[6:12], "%y%m%d")
     t = Time(dt)
