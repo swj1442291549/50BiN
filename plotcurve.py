@@ -442,7 +442,7 @@ def plot_lc(file_name):
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.title(title)
-        plt.ylim(min(y2) - 0.05, max(y2) + 0.05)
+        # plt.ylim(min(y2) - 0.05, max(y2) + 0.05)
         plt.gca().invert_yaxis()
         plt.draw()
 
@@ -463,7 +463,7 @@ def plot_lc(file_name):
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Magnitude")
     ax.set_title(title)
-    ax.set_ylim(min(y2) - 0.05, max(y2) + 0.05)
+    # ax.set_ylim(min(y2) - 0.05, max(y2) + 0.05)
     ax.invert_yaxis()
     fig.canvas.mpl_connect("key_press_event", on_key)
     plt.show()
