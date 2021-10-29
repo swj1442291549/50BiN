@@ -155,7 +155,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
                 break
     print("# Std Stars: {0:d}".format(len(ncs)))
 
-    stdframe_index_date_list = list()
+    bestframe_index_date_list = list()
     for i in range(ndate):
         ncs_apmagmatch_mag_date = apmagmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0]
         ncs_apmagmatch_magshift_date = np.subtract(ncs_apmagmatch_mag_date.T, np.nanmean(ncs_apmagmatch_mag_date, axis=1)).T
@@ -163,10 +163,11 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
         smoothen = 5
         x_ncs_apmagmatch_magmean_date = np.pad(ncs_apmagmatch_magmean_date, (smoothen//2, smoothen-smoothen//2), mode='edge')
         x_ncs_apmagmatch_magmean_date = np.cumsum(x_ncs_apmagmatch_magmean_date[smoothen:] - x_ncs_apmagmatch_magmean_date[:-smoothen]) / smoothen
-        stdframe_index_date_list.append(x_ncs_apmagmatch_magmean_date.argmin() + int(sum(nframe_date_list[:i])))
+        bestframe_index_date_list.append(x_ncs_apmagmatch_magmean_date.argmin() + int(sum(nframe_date_list[:i])))
 
 
-    with open("stdstar0.dat", "w") as f:
+    with open("stdstar.dat", "w") as f:
+        f.write("             ra             dec      apmag  apmag_err     psfmag psfmag_err\n")
         for j in range(len(ncs)):
             f.write(
                 "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
@@ -178,6 +179,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
                     psfmagmatch[j, medframe_index, 1],
                 )
             )
+    print("Save standard stars info in {0}".format("stdstar.dat"))
 
 
     # Write merged uncalibrated data into a file
@@ -202,12 +204,12 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
         "coord": coord_list[medframe_index], # coordinates
         "psfmagmatch": psfmagmatch, # PSF magnitude
         "apmagmatch": apmagmatch, # Aperature magnitude
-        "stdframe_index_date_list": stdframe_index_date_list, # index list of te standard (best) frame in each date  
+        "bestframe_index_date_list": bestframe_index_date_list, # index list of te best frame in each date  
         "nframe_date_list": nframe_date_list, # number of frames in each date
         "mjd_date_list": mjd_date_list, # MJD of each date
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
-    print("Save data in {0}.".format(mergecat_file_name))
+    print("Save python pickle data in {0}.".format(mergecat_file_name))
 
 
 def read_obs_location(obs_flag):
