@@ -207,6 +207,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
         "bestframe_index_date_list": bestframe_index_date_list, # index list of te best frame in each date  
         "nframe_date_list": nframe_date_list, # number of frames in each date
         "mjd_date_list": mjd_date_list, # MJD of each date
+        "ncs": ncs, # index of standard stars
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
     print("Save python pickle data in {0}".format(mergecat_file_name))
