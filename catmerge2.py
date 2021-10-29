@@ -71,7 +71,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
     target_airmass = target_altaz.secz
     frame_info = frame_info.assign(airmass=target_airmass)
 
-    medframe_index = find_medframe_index(frame_info, medframe_index)
+    medframe_index = find_medframe_index(frame_info, medframe_factor)
     nstar = frame_info.loc[medframe_index]["nstar"]
     cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
 
