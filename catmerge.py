@@ -155,16 +155,6 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
                 break
     print("# Std Stars: {0:d}".format(len(ncs)))
 
-    bestframe_index_date_list = list()
-    for i in range(ndate):
-        ncs_apmagmatch_mag_date = apmagmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0]
-        ncs_apmagmatch_magshift_date = np.subtract(ncs_apmagmatch_mag_date.T, np.nanmean(ncs_apmagmatch_mag_date, axis=1)).T
-        ncs_apmagmatch_magmean_date = np.nanmean(ncs_apmagmatch_magshift_date, axis=0)
-        smoothen = 5
-        x_ncs_apmagmatch_magmean_date = np.pad(ncs_apmagmatch_magmean_date, (smoothen//2, smoothen-smoothen//2), mode='edge')
-        x_ncs_apmagmatch_magmean_date = np.cumsum(x_ncs_apmagmatch_magmean_date[smoothen:] - x_ncs_apmagmatch_magmean_date[:-smoothen]) / smoothen
-        bestframe_index_date_list.append(x_ncs_apmagmatch_magmean_date.argmin() + int(sum(nframe_date_list[:i])))
-
 
     with open("stdstar.dat", "w") as f:
         f.write("             ra             dec      apmag  apmag_err     psfmag psfmag_err\n")
@@ -204,7 +194,6 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
         "coord": coord_list[medframe_index], # coordinates
         "psfmagmatch": psfmagmatch, # PSF magnitude
         "apmagmatch": apmagmatch, # Aperature magnitude
-        "bestframe_index_date_list": bestframe_index_date_list, # index list of te best frame in each date  
         "nframe_date_list": nframe_date_list, # number of frames in each date
         "mjd_date_list": mjd_date_list, # MJD of each date
         "ncs": ncs, # index of standard stars
