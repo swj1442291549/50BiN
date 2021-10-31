@@ -1,5 +1,6 @@
 import pickle
 from pathlib import Path
+import pandas as pd
 from operator import itemgetter
 from matplotlib import pyplot as plt
 import click
@@ -83,9 +84,12 @@ def cli(input_file_name, magtype, noc, plot_flag):
     else:
         magmatch = psfmagmatch
 
-    magx, ommag, ommag_err = differential_correct_phot(
-        magmatch, nstar, frame_info, ncs, medframe_index, nframe
-    )
+    # magx, ommag, ommag_err = differential_correct_phot(
+    #     magmatch, nstar, frame_info, ncs, medframe_index, nframe
+    # )
+
+    bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
+    magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
 
     # Save average magnitude for each star
     mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
@@ -612,9 +616,6 @@ if __name__ == "__main__":
 
 
 
-    # magx, ommag, ommag_err = differential_correct_phot(
-    #     magmatch, nstar, frame_info, ncs, medframe_index, nframe
-    # )
 
     # # Save average magnitude for each star
     # mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
