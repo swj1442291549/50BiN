@@ -125,8 +125,39 @@ def cli(input_file_name, magtype, noc, plot_flag):
         plot_lc(final_catfile_name)
 
 
-def airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe):
-    pass
+def airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list):
+    ncs_magmatch_delta = np.copy(magmatch[ncs, :, 0])
+    magx_delta = np.zeros((nstar, nframe))
+    magx = np.copy(magmatch)
+    magmatch_best_noairmass = np.zeros((nstar, ndate))
+    bad_frame_index_list = list()
+    for i in range(ndate):
+        ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[ncs, bestframe_index_date_list[i], 0]).T
+        ncs_magmatch_delta_mean_date = np.nanmean(ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))], axis=0) #? maybe not mean
+        airmass = frame_info[frame_info.mjd == mjd_date_list[i]].airmass
+        mag_delta_date = pd.DataFrame({'airmass': airmass, "delta": ncs_magmatch_delta_mean_date})
+        popt, perr, bad_frame_index = fit_airmass_delta_zeropoint(mag_delta_date)
+        bad_frame_index_list.append(bad_frame_index)
+
+        magmatch_delta = np.subtract(magmatch[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[:, bestframe_index_date_list[i], 0]).T
+        magx_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch_delta, np.polyval(popt, airmass))
+        magmatch_best = magmatch[:, bestframe_index_date_list[i], 0]
+        magmatch_best_noairmass[:, i] = magmatch_best - popt[0] * frame_info.loc[bestframe_index_date_list[i]].airmass
+    ommag = np.nanmean(magmatch_best_noairmass, axis=1) # TODO improve
+    ommag_err = np.nanstd(magmatch_best_noairmass, axis=1)
+    magx[:, :, 0] = np.add(magx_delta.T, ommag).T
+    frame_info = frame_info.assign(bad=False)
+    frame_info.loc[np.concatenate(bad_frame_index_list), "bad"] = True
+    magx[:, np.concatenate(bad_frame_index_list), :] = np.nan
+        # x = np.linspace(1.2, 2.2)
+        # ax.scatter(mag_delta_date.airmass, mag_delta_date.delta, s=4)
+        # ax.plot(x, np.polyval(popt, x), label='date {0}'.format(i + 1))
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.legend()
+    # plt.show()
+    return magx, ommag, ommag_err, frame_info
+
 
 
 def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe):
