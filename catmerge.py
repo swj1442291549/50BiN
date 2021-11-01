@@ -330,6 +330,23 @@ def read_cat_and_info(file_name):
     }
     return cat, info_dict
 
+def convert_str_to_float(string):
+    """Convert str to float
+
+    To handle the edge case
+
+    Args:
+        string (str): string
+
+    Returns:
+        f (float): float value
+    """
+    try:
+        f = float(string)
+    except:
+        f = np.nan
+    return f
+
 
 def find_medframe_index(frame_info, medframe_factor):
     """Find the index of reference frame which has medframe_factor times the mean number of stars
