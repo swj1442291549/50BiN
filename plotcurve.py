@@ -1,5 +1,6 @@
 import pickle
 from pathlib import Path
+import pandas as pd
 from operator import itemgetter
 from matplotlib import pyplot as plt
 import click
@@ -12,7 +13,7 @@ from tqdm import tqdm
 @click.option(
     "--magtype", type=str, default="a", help="magnitude type. a: aperture; p: psf"
 )
-@click.option("--noc", type=int, default=20, help="Number of selected standard stars")
+@click.option("--noc", type=int, default=10, help="Number of selected standard stars")
 @click.option("--plot_flag", type=bool, default=True, help="Enter interactive plot")
 def cli(input_file_name, magtype, noc, plot_flag):
     """Input catalog file from catmerge (.pkl)"""
@@ -35,36 +36,37 @@ def cli(input_file_name, magtype, noc, plot_flag):
         medframe_index,
         nstar,
         ndate,
-        df_info,
+        frame_info,
         nomatch,
         coord,
         psfmagmatch,
         apmagmatch,
+        nframe_date_list,
+        mjd_date_list,
+        ncs
     ) = itemgetter(
         "nframe",
         "medframe_index",
-        "medframe_nstar",
+        "nstar",
         "ndate",
-        "df_info",
+        "frame_info",
         "nomatch",
         "coord",
         "psfmagmatch",
         "apmagmatch",
+        "nframe_date_list",
+        "mjd_date_list",
+        "ncs"
     )(
         mergecat_dict
     )
 
-    df_info = df_info.assign(
-        amjd=df_info.mjd + df_info.mid_time / 24 - 0.5
+    frame_info = frame_info.assign(
+        amjd=frame_info.mjd + frame_info.mid_time / 24 - 0.5
     )  # convert observing time to modified julian day AMJD(1-nf)
 
     print("total number of stars: {0:d}".format(nstar))
 
-    with open("mdev.dat", "r") as f:
-        lines = f.readlines()
-        i1 = [int(list(filter(None, line.split(" ")))[0]) for line in lines]
-        i2 = [int(list(filter(None, line.split(" ")))[1]) for line in lines]
-        ncs = [int(list(filter(None, line.split(" ")))[2]) for line in lines]
     if len(ncs) < noc:
         print("too few std stars selected")
         return
@@ -74,15 +76,6 @@ def cli(input_file_name, magtype, noc, plot_flag):
         for i in range(noc):
             print("{0:3d} Std star ID: {1:4d}".format(i, ncs[i]))
 
-    ut1 = (
-        df_info.mid_time.iloc[0]
-        - (df_info.mid_time.iloc[nframe - 1] - df_info.mid_time.iloc[0]) / 30
-    )
-    ut2 = (
-        df_info.mid_time.iloc[nframe - 1]
-        + (df_info.mid_time.iloc[nframe - 1] - df_info.mid_time.iloc[0]) / 30
-    )
-    amjd = df_info.mjd + df_info.mid_time / 24 - 0.5
 
     if magtype == "a":
         magmatch = apmagmatch
@@ -90,8 +83,11 @@ def cli(input_file_name, magtype, noc, plot_flag):
         magmatch = psfmagmatch
 
     magx, ommag, ommag_err = differential_correct_phot(
-        magmatch, nstar, df_info, ncs, medframe_index, nframe
+        magmatch, nstar, frame_info, ncs, medframe_index, nframe
     )
+
+    # bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
+    # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
 
     # Save average magnitude for each star
     mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
@@ -115,7 +111,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
         "medframe_index": medframe_index,
         "medframe_nstar": nstar,
         "ndate": ndate,
-        "df_info": df_info,
+        "frame_info": frame_info,
         "nomatch": nomatch,
         "coord": coord,
         "psfmagmatch": psfmagmatch,
@@ -131,17 +127,48 @@ def cli(input_file_name, magtype, noc, plot_flag):
         plot_lc(final_catfile_name)
 
 
-def airmass_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nframe):
-    pass
+def airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list):
+    ncs_magmatch_delta = np.copy(magmatch[ncs, :, 0])
+    magx_delta = np.zeros((nstar, nframe))
+    magx = np.copy(magmatch)
+    magmatch_best_noairmass = np.zeros((nstar, ndate))
+    bad_frame_index_list = list()
+    for i in range(ndate):
+        ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[ncs, bestframe_index_date_list[i], 0]).T
+        ncs_magmatch_delta_mean_date = np.nanmean(ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))], axis=0) #? maybe not mean
+        airmass = frame_info[frame_info.mjd == mjd_date_list[i]].airmass
+        mag_delta_date = pd.DataFrame({'airmass': airmass, "delta": ncs_magmatch_delta_mean_date})
+        popt, perr, bad_frame_index = fit_airmass_delta_zeropoint(mag_delta_date)
+        bad_frame_index_list.append(bad_frame_index)
+
+        magmatch_delta = np.subtract(magmatch[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[:, bestframe_index_date_list[i], 0]).T
+        magx_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch_delta, np.polyval(popt, airmass))
+        magmatch_best = magmatch[:, bestframe_index_date_list[i], 0]
+        magmatch_best_noairmass[:, i] = magmatch_best - popt[0] * frame_info.loc[bestframe_index_date_list[i]].airmass
+    ommag = np.nanmean(magmatch_best_noairmass, axis=1) # TODO improve
+    ommag_err = np.nanstd(magmatch_best_noairmass, axis=1)
+    magx[:, :, 0] = np.add(magx_delta.T, ommag).T
+    frame_info = frame_info.assign(bad=False)
+    frame_info.loc[np.concatenate(bad_frame_index_list), "bad"] = True
+    magx[:, np.concatenate(bad_frame_index_list), :] = np.nan
+        # x = np.linspace(1.2, 2.2)
+        # ax.scatter(mag_delta_date.airmass, mag_delta_date.delta, s=4)
+        # ax.plot(x, np.polyval(popt, x), label='date {0}'.format(i + 1))
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.legend()
+    # plt.show()
+    return magx, ommag, ommag_err, frame_info
 
 
-def differential_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nframe):
+
+def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe):
     """Correct photometry via differential method
 
     Args:
         magmatch (array): raw photometry array
         nstar (int): number of star
-        df_info (DataFrame): info
+        frame_info (DataFrame): info
         ncs (list): list of standard stars' index
         medframe_index (int): index of medframe
         nframe (int): number of frame
@@ -154,7 +181,7 @@ def differential_correct_phot(magmatch, nstar, df_info, ncs, medframe_index, nfr
     magx = np.zeros_like(magmatch)
     ommag = np.zeros(nstar)
     ommag_err = np.zeros(nstar)
-    ut = df_info.mid_time.values
+    ut = frame_info.mid_time.values
     magmatch_medframe = magmatch[ncs, medframe_index, 0]
     for ipg in range(nstar):
         magmatch[ipg, magmatch[ipg, :, 0] > 30, 1] = 0
@@ -281,7 +308,7 @@ def save_single_phot(input_file_name, magtype, star_index, amjd, coord, magmatch
             )
 
 
-def prepare_lc_df(star_index, df_info, magmatch, magx):
+def prepare_lc_df(star_index, frame_info, magmatch, magx):
     """Prepare cleaned light curve data
 
     Add mag, mag_err, magx, and magx_err to info
@@ -289,14 +316,14 @@ def prepare_lc_df(star_index, df_info, magmatch, magx):
 
     Args:
         star_index (int): index of the star
-        df_info (DataFrame): info data
+        frame_info (DataFrame): info data
         magmatch (array): raw photometry array
         magx (array): corrected photometry array
 
     Returns:
         lc (array): light curve data
     """
-    lc = df_info.copy()
+    lc = frame_info.copy()
     lc = lc.assign(mag=magmatch[star_index, :, 0])
     lc = lc.assign(mag_err=magmatch[star_index, :, 1])
     lc = lc.assign(magx=magx[star_index, :, 0])
@@ -326,7 +353,7 @@ def plot_lc(file_name):
         medframe_index,
         nstar,
         ndate,
-        df_info,
+        frame_info,
         nomatch,
         coord,
         psfmagmatch,
@@ -340,7 +367,7 @@ def plot_lc(file_name):
         "medframe_index",
         "medframe_nstar",
         "ndate",
-        "df_info",
+        "frame_info",
         "nomatch",
         "coord",
         "psfmagmatch",
@@ -357,7 +384,7 @@ def plot_lc(file_name):
     else:
         magmatch = psfmagmatch
 
-    mjd_list = list(set(df_info.mjd))
+    mjd_list = list(set(frame_info.mjd))
 
     global star_index
     global mday_flag
@@ -365,7 +392,7 @@ def plot_lc(file_name):
     star_index = 0
     mjd_index = -1
     mday_flag = False
-    lc = prepare_lc_df(star_index, df_info, magmatch, magx)
+    lc = prepare_lc_df(star_index, frame_info, magmatch, magx)
 
     def on_key(event):
         global star_index
@@ -385,7 +412,7 @@ def plot_lc(file_name):
                 star_index -= 1
         elif event.key == "s":
             save_single_phot(
-                file_name, magtype, star_index, df_info["amjd"], coord, magmatch, magx
+                file_name, magtype, star_index, frame_info["amjd"], coord, magmatch, magx
             )
             return
         elif event.key == "d":
@@ -394,7 +421,7 @@ def plot_lc(file_name):
                 mjd_index = -1
 
         plt.clf()
-        lc = prepare_lc_df(star_index, df_info, magmatch, magx)
+        lc = prepare_lc_df(star_index, frame_info, magmatch, magx)
         if mjd_index != -1:
             lc = lc[lc.mjd == mjd_list[mjd_index]]
         if mday_flag:
@@ -475,10 +502,42 @@ def plot_lc(file_name):
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Magnitude")
     ax.set_title(title)
-    ax.set_ylim(min(y2) - 0.05, max(y2) + 0.05)
+    # ax.set_ylim(min(y2) - 0.05, max(y2) + 0.05)
     ax.invert_yaxis()
     fig.canvas.mpl_connect("key_press_event", on_key)
     plt.show()
+
+
+def fit_airmass_delta(mag_delta_date):
+    mag_delta_date = mag_delta_date[0.583 * mag_delta_date.airmass -0.566 > mag_delta_date.delta]
+    popt, pcov = np.polyfit(mag_delta_date.airmass, mag_delta_date.delta, 1, cov=True)
+    perr = np.sqrt(np.diag(pcov))
+    return popt, perr
+
+def fit_airmass_delta_zeropoint(mag_delta_date):
+    # TODO improve
+    mag_delta_date_1 = mag_delta_date[(0.583 * mag_delta_date.airmass -0.566 > mag_delta_date.delta) & (mag_delta_date.airmass > 1.5)]
+    k = np.nanmedian(mag_delta_date_1.delta / (mag_delta_date_1.airmass - min(mag_delta_date.airmass)))
+    popt = (k, -min(mag_delta_date.airmass) * k)
+    perr = (0, 0)
+    # mag_delta_date_1 = mag_delta_date[(0.583 * mag_delta_date.airmass -0.566 > mag_delta_date.delta)]
+    # mag_delta_date_1 = mag_delta_date_1.append({"airmass": min(mag_delta_date.airmass), "delta": 0}, ignore_index=True)
+    # popt, pcov = np.polyfit(mag_delta_date_1.airmass, mag_delta_date_1.delta, 1, cov=True)
+    # perr = np.sqrt(np.diag(pcov))
+    bad_frame_index = mag_delta_date[(mag_delta_date.delta - np.polyval(popt, mag_delta_date.airmass)) > 0.1].index
+    return popt, perr, bad_frame_index
+
+def get_bestframe_index(ndate, magmatch, ncs, nframe_date_list):
+    bestframe_index_date_list = list()
+    for i in range(ndate):
+        ncs_magmatch_mag_date = magmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0]
+        ncs_magmatch_magshift_date = np.subtract(ncs_magmatch_mag_date.T, np.nanmean(ncs_magmatch_mag_date, axis=1)).T
+        ncs_magmatch_magmean_date = np.nanmean(ncs_magmatch_magshift_date, axis=0)
+        smoothen = 5
+        x_ncs_magmatch_magmean_date = np.pad(ncs_magmatch_magmean_date, (smoothen//2, smoothen-smoothen//2), mode='edge')
+        x_ncs_magmatch_magmean_date = np.cumsum(x_ncs_magmatch_magmean_date[smoothen:] - x_ncs_magmatch_magmean_date[:-smoothen]) / smoothen
+        bestframe_index_date_list.append(x_ncs_magmatch_magmean_date.argmin() + int(sum(nframe_date_list[:i])))
+    return bestframe_index_date_list
 
 
 if __name__ == "__main__":
