@@ -114,6 +114,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
         mergecat_file_name = "{0}.{1}gcat.pkl".format(
             info_dict_list[0]["file_name"][1:13], phot_flag
         )
+    nstar = info_dict_list[medframe_index]["nstar"]
 
     mergecat_dict = {
         "nframe": nframe,
@@ -144,13 +145,18 @@ def cli(phot_flag, dmatch, sdev, medframe_factor):
                 continue
             istd.append(j)
             ic += 1
-            if ic > 100:
+            if ic > int(nstar * 0.2):
                 ic -= 1
                 calib_flag = False
                 print("# Std star : {0}".format(ic))
                 break
-        if ic < 50:
+        if ic < int(nstar * 0.1):
             nmlim *= 2
+
+            if ic > int(nstar * 0.2):
+                ic -= 1
+                calib_flag = False
+                break
 
     # Find non-variable candidate stars for differential photometry
     with open("std.dat", "w") as f:
