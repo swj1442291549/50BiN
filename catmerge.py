@@ -52,10 +52,12 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
     print("Reading data ... ")
     for k in tqdm(range(nframe)):
         cat, info_dict = read_cat_and_info(catfile_list[k])
-        cat_list.append(cat)
-        info_dict_list.append(info_dict)
-        coord_list.append(cat[:, 18:20].astype(float))
+        if cat is not None:
+            cat_list.append(cat)
+            info_dict_list.append(info_dict)
+            coord_list.append(cat[:, 18:20].astype(float))
     frame_info = pd.DataFrame(info_dict_list)
+    nframe = len(frame_info)
     mjd_date_list = np.sort(list(set(frame_info.mjd)))  
     nframe_date_list = [len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list]
     ndate = len(mjd_date_list)
@@ -304,14 +306,9 @@ def read_cat_and_info(file_name):
     start_time = datetime.strptime(
         "{0} {1}".format(file_name[6:12], info_list[0]), "%y%m%d %H:%M:%S.%f"
     )
-    mid_time = float(info_list[2])
-    exp = float(info_list[1])
-    try:
-        fwhm = float(info_list[3])
-    except:
-        fwhm = np.nan
-    else:
-        pass
+    mid_time = convert_str_to_float(info_list[2])
+    exp = convert_str_to_float(info_list[1])
+    fwhm = convert_str_to_float(info_list[3])
     aperture = float(info_list[4])
     dt = datetime.strptime(file_name[6:12], "%y%m%d")
     t = Time(dt)
