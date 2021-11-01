@@ -41,7 +41,6 @@ def cli(input_file_name, magtype, noc, plot_flag):
         coord,
         psfmagmatch,
         apmagmatch,
-        bestframe_index_date_list,
         nframe_date_list,
         mjd_date_list,
         ncs
@@ -55,7 +54,6 @@ def cli(input_file_name, magtype, noc, plot_flag):
         "coord",
         "psfmagmatch",
         "apmagmatch",
-        "bestframe_index_date_list",
         "nframe_date_list",
         "mjd_date_list",
         "ncs"
@@ -84,12 +82,12 @@ def cli(input_file_name, magtype, noc, plot_flag):
     else:
         magmatch = psfmagmatch
 
-    # magx, ommag, ommag_err = differential_correct_phot(
-    #     magmatch, nstar, frame_info, ncs, medframe_index, nframe
-    # )
+    magx, ommag, ommag_err = differential_correct_phot(
+        magmatch, nstar, frame_info, ncs, medframe_index, nframe
+    )
 
-    bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
-    magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
+    # bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
+    # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
 
     # Save average magnitude for each star
     mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
@@ -531,107 +529,4 @@ def get_bestframe_index(ndate, magmatch, ncs, nframe_date_list):
 
 
 if __name__ == "__main__":
-    # cli()
-
-    input_file_name = "N2301ALL_B.0gcat.pkl"
-    plot_flag = False
-    noc = 10
-    magtype = "a"
-
-
-    # if not Path(input_file_name).is_file():
-    #     print("File not found!")
-    #     return
-
-    mergecat_dict = pickle.load(open(input_file_name, "rb"))
-
-    # if "magx" in mergecat_dict.keys():
-    #     print("This catalog has alreadly contained corrected photometry")
-    #     if plot_flag:
-    #         plot_lc(input_file_name)
-    #         return
-    #     else:
-    #         return
-
-    (
-        nframe,
-        medframe_index,
-        nstar,
-        ndate,
-        frame_info,
-        nomatch,
-        coord,
-        psfmagmatch,
-        apmagmatch,
-        nframe_date_list,
-        mjd_date_list,
-        ncs
-    ) = itemgetter(
-        "nframe",
-        "medframe_index",
-        "nstar",
-        "ndate",
-        "frame_info",
-        "nomatch",
-        "coord",
-        "psfmagmatch",
-        "apmagmatch",
-        "nframe_date_list",
-        "mjd_date_list",
-        "ncs"
-    )(
-        mergecat_dict
-    )
-
-    frame_info = frame_info.assign(
-        amjd=frame_info.mjd + frame_info.mid_time / 24 - 0.5
-    )  # convert observing time to modified julian day AMJD(1-nf)
-
-    print("total number of stars: {0:d}".format(nstar))
-
-    if len(ncs) < noc:
-        print("too few std stars selected")
-        # return
-    else:
-        ncs = ncs[:noc]
-        print("Std tot: {0:d}".format(noc))
-        for i in range(noc):
-            print("{0:3d} Std star ID: {1:4d}".format(i, ncs[i]))
-
-    if magtype == "a":
-        magmatch = apmagmatch
-    else:
-        magmatch = psfmagmatch
-
-    fig, ax = plt.subplots(1, 1)
-    bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
-    ncs_magmatch_delta = np.copy(magmatch[ncs, :, 0])
-    magx_delta = np.zeros((nstar, nframe))
-    magx = np.copy(magmatch)
-    magmatch_best_noairmass = np.zeros((nstar, ndate))
-    bad_frame_index_list = list()
-    for i in range(ndate):
-        ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[ncs, bestframe_index_date_list[i], 0]).T
-        ncs_magmatch_delta_mean_date = np.nanmean(ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))], axis=0) #? maybe not mean
-        airmass = frame_info[frame_info.mjd == mjd_date_list[i]].airmass
-        mag_delta_date = pd.DataFrame({'airmass': airmass, "delta": ncs_magmatch_delta_mean_date})
-        popt, perr, bad_frame_index = fit_airmass_delta_zeropoint(mag_delta_date)
-        bad_frame_index_list.append(bad_frame_index)
-
-        magmatch_delta = np.subtract(magmatch[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[:, bestframe_index_date_list[i], 0]).T
-        magx_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch_delta, np.polyval(popt, airmass))
-        magmatch_best = magmatch[:, bestframe_index_date_list[i], 0]
-        magmatch_best_noairmass[:, i] = magmatch_best - popt[0] * frame_info.loc[bestframe_index_date_list[i]].airmass
-        x = np.linspace(1.2, 2.2)
-        ax.scatter(mag_delta_date.airmass, mag_delta_date.delta, s=4)
-        ax.plot(x, np.polyval(popt, x), label='date {0}'.format(i + 1))
-    ommag = np.nanmean(magmatch_best_noairmass, axis=1) # TODO improve
-    ommag_err = np.nanstd(magmatch_best_noairmass, axis=1)
-    magx[:, :, 0] = np.add(magx_delta.T, ommag).T
-    frame_info = frame_info.assign(bad=False)
-    frame_info.loc[np.concatenate(bad_frame_index_list), "bad"] = True
-    magx[:, np.concatenate(bad_frame_index_list), :] = np.nan
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.legend()
-    plt.show()
+    cli()
