@@ -79,10 +79,11 @@ The output files include:
 ## Install
 To use this script, `virtualenv` is highly recommended (but not required). Please check [this website](https://virtualenv.pypa.io/en/latest/installation.html) for an installation guidance.
 
+Enter the folder that contains all the source files
 ```bash
 $ virtualenv venv
 $ . venv/bin/activate
-$ pip install -U git+git://github.com/swj1442291549/50BiN
+$ pip install --editable .
 ```
 
 Afterwards, the program should be available:
