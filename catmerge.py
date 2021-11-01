@@ -109,29 +109,18 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
 
 
     # Define standard candidate stars for differential photometry
+    std = np.arange(nstar)
     nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
     calib_flag = True
     while calib_flag:
-        ic = 1
-        istd = list()
-        for j in range(nstar):
-            if nomatch[j] > nmlim:
-                continue
-            if np.isnan(psfmagmatch[j, medframe_index, 0]) and np.isnan(apmagmatch[j, medframe_index, 0]):
-                continue
-            istd.append(j)
-            ic += 1
-            if ic > int(nstar * 0.2):
-                ic -= 1
-                calib_flag = False
-                break
-        if ic < int(nstar * 0.1):
-            nmlim *= 2
-
-            if ic > int(nstar * 0.2):
-                ic -= 1
-                calib_flag = False
-                break
+        istd = std[(nomatch < nmlim)]
+        if len(istd) > int(nstar * 0.2):
+            calib_flag = False
+        else:
+            nmlim *= 1.1
+        if nmlim >= nstar:
+            break
+    ic = len(istd)
 
     # Find non-variable candidate stars for differential photometry
     kstd1 = list()
