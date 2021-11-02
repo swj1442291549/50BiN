@@ -14,8 +14,9 @@ from tqdm import tqdm
     "--magtype", type=str, default="a", help="magnitude type. a: aperture; p: psf"
 )
 @click.option("--noc", type=int, default=10, help="Number of selected standard stars")
+@click.option("-i", "--init_star_index", type=int, default=0, help="Index of star to plot")
 @click.option("--plot_flag", type=bool, default=True, help="Enter interactive plot")
-def cli(input_file_name, magtype, noc, plot_flag):
+def cli(input_file_name, magtype, noc, plot_flag, init_star_index):
     """Input catalog file from catmerge (.pkl)"""
     if not Path(input_file_name).is_file():
         print("File not found!")
@@ -26,7 +27,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
     if "magx" in mergecat_dict.keys():
         print("This catalog has alreadly contained corrected photometry")
         if plot_flag:
-            plot_lc(input_file_name)
+            plot_lc(input_file_name, init_star_index)
             return
         else:
             return
@@ -124,7 +125,7 @@ def cli(input_file_name, magtype, noc, plot_flag):
     pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
 
     if plot_flag:
-        plot_lc(final_catfile_name)
+        plot_lc(final_catfile_name, init_star_index)
 
 
 def airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list):
@@ -332,7 +333,7 @@ def prepare_lc_df(star_index, frame_info, magmatch, magx):
     return lc
 
 
-def plot_lc(file_name):
+def plot_lc(file_name, init_star_index):
     """Plot light curve
 
     Keyboard interaction:
@@ -389,7 +390,7 @@ def plot_lc(file_name):
     global star_index
     global mday_flag
     global mjd_index
-    star_index = 0
+    star_index = init_star_index
     mjd_index = -1
     mday_flag = False
     lc = prepare_lc_df(star_index, frame_info, magmatch, magx)
