@@ -33,16 +33,17 @@ The output files include:
 - `stdstar0.dat`: photometry of non-variable candidates in the reference frame (columns: `ra`, `dec`, `apmag`, `apmag_err`, `psfmag`, `psfmag_err`)
 - `*gcat.pkl`: python pickle file that contains all data
 ```
-Usage: catmerge [OPTIONS]
+Usage: catmerge.py [OPTIONS]
 
 Options:
-  --phot_flag INTEGER      Magnitude type. 0: original aperture photometry; 1:
-                           aperture photometry with star center refitted by
-                           PSF
+  --phot_flag INTEGER      Magnitude type. 0: original aperture
+                           photometry; 1: aperture photometry with
+                           star center refitted by PSF
   --dmatch FLOAT           Position matching distance in arcsec
   --sdev FLOAT             Standard deviation for none variable selection
-  --medframe_factor FLOAT  A factor on average star number in a frame for
-                           reference frame selection
+  --medframe_factor FLOAT  A factor on average star number in a
+                           frame for reference frame selection
+  --obs_flag TEXT          Observatory flag. 'd': Delingha; 'l': Lenghu
   --help                   Show this message and exit.
 ```
 
@@ -51,15 +52,16 @@ This program is to present the data in time-series light curve. It also applies 
 
 
 ```
-Usage: plotcurve [OPTIONS] INPUT_FILE_NAME
+Usage: plotcurve.py [OPTIONS] INPUT_FILE_NAME
 
   Input catalog file from catmerge (.pkl)
 
 Options:
-  --magtype TEXT       magnitude type. a: aperture; p: psf
-  --noc INTEGER        Number of selected standard stars
-  --plot_flag BOOLEAN  Enter interactive plot
-  --help               Show this message and exit.
+  --magtype TEXT                 magnitude type. a: aperture; p: psf
+  --noc INTEGER                  Number of selected standard stars
+  -i, --init_star_index INTEGER  Index of star to plot
+  --plot_flag BOOLEAN            Enter interactive plot
+  --help                         Show this message and exit.
 ```
 
 The default figure is shown in UT horizontal axis with multiple-day data folded into a single frame. It can be switched to day mode that expands the data into the MJD axis.
