@@ -121,6 +121,8 @@ def cli(input_file_name, magtype, noc, plot_flag, init_star_index):
         "magx": magx,
         "ommag": ommag,
         "ommag_err": ommag_err,
+        "nframe_date_list": nframe_date_list,
+        "ncs": ncs
     }
     pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
 
@@ -363,6 +365,8 @@ def plot_lc(file_name, init_star_index):
         magx,
         ommag,
         ommag_err,
+        nframe_date_list,
+        ncs
     ) = itemgetter(
         "nframe",
         "medframe_index",
@@ -377,6 +381,8 @@ def plot_lc(file_name, init_star_index):
         "magx",
         "ommag",
         "ommag_err",
+        "nframe_date_list",
+        "ncs",
     )(
         mergecat_dict
     )
@@ -503,7 +509,7 @@ def plot_lc(file_name, init_star_index):
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Magnitude")
     ax.set_title(title)
-    # ax.set_ylim(min(y2) - 0.05, max(y2) + 0.05)
+    ax.set_ylim(min(y2) - 0.05, max(y2) + 0.05)
     ax.invert_yaxis()
     fig.canvas.mpl_connect("key_press_event", on_key)
     plt.show()
