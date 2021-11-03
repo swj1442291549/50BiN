@@ -110,7 +110,7 @@ def cli(input_file_name, magtype, noc, plot_flag, init_star_index):
     mergecat_dict = {
         "nframe": nframe,
         "medframe_index": medframe_index,
-        "medframe_nstar": nstar,
+        "nstar": nstar,
         "ndate": ndate,
         "frame_info": frame_info,
         "nomatch": nomatch,
@@ -366,7 +366,7 @@ def plot_lc(file_name, init_star_index):
     ) = itemgetter(
         "nframe",
         "medframe_index",
-        "medframe_nstar",
+        "nstar",
         "ndate",
         "frame_info",
         "nomatch",
