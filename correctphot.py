@@ -2,10 +2,10 @@ import pickle
 from pathlib import Path
 import pandas as pd
 from operator import itemgetter
-from matplotlib import pyplot as plt
 import click
 import numpy as np
 from tqdm import tqdm
+import warnings
 
 
 @click.command()
@@ -142,13 +142,6 @@ def airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nfram
     frame_info = frame_info.assign(bad=False)
     frame_info.loc[np.concatenate(bad_frame_index_list), "bad"] = True
     magx[:, np.concatenate(bad_frame_index_list), :] = np.nan
-        # x = np.linspace(1.2, 2.2)
-        # ax.scatter(mag_delta_date.airmass, mag_delta_date.delta, s=4)
-        # ax.plot(x, np.polyval(popt, x), label='date {0}'.format(i + 1))
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.legend()
-    # plt.show()
     return magx, ommag, ommag_err, frame_info
 
 
@@ -171,17 +164,20 @@ def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, 
     print("Calibrating stars ...")
     magx = np.copy(magmatch)
     ncs_magmatch_delta = np.subtract(magmatch[ncs, :, 0].T, magmatch[ncs, medframe_index, 0]).T
-    ncs_magmatch_delta_mean = np.nanmean(ncs_magmatch_delta, axis=0)
-    magx[:, :, 0] = np.subtract(magmatch[:, :, 0], ncs_magmatch_delta_mean)
-    magx_mean = np.nanmean(magx[:, :, 0], axis=1)
-    magx_std = np.nanstd(magx[:, :, 0], axis=1, ddof=3)
-    magx_delta = np.subtract(magx[:, :, 0].T, magx_mean).T
-    magx_abs_delta_ratio = np.divide(np.abs(magx_delta).T, magx_std).T
-    ommag = np.zeros(nstar) * np.nan
-    ommag_err = np.zeros(nstar) * np.nan
-    for i in range(nstar):
-        ommag[i] = np.nanmean(magx[i,:,0][magx_abs_delta_ratio[i] < 3])
-        ommag_err[i] = np.nanmean(magx[i,:,1][magx_abs_delta_ratio[i] < 3])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        ncs_magmatch_delta_mean = np.nanmean(ncs_magmatch_delta, axis=0)
+        magx[:, :, 0] = np.subtract(magmatch[:, :, 0], ncs_magmatch_delta_mean)
+        magx_mean = np.nanmean(magx[:, :, 0], axis=1)
+        magx_std = np.nanstd(magx[:, :, 0], axis=1, ddof=3)
+        magx_delta = np.subtract(magx[:, :, 0].T, magx_mean).T
+        magx_abs_delta_ratio = np.divide(np.abs(magx_delta).T, magx_std).T
+        ommag = np.zeros(nstar) * np.nan
+        ommag_err = np.zeros(nstar) * np.nan
+        for i in range(nstar):
+            sel = magx_abs_delta_ratio[i] < 3
+            ommag[i] = np.nanmean(magx[i,:,0][sel])
+            ommag_err[i] = np.nanmean(magx[i,:,1][sel])
     return magx, ommag, ommag_err
 
 
