@@ -1,13 +1,14 @@
 # 50BiN
 Data pipeline for time-series light curve catalogue for 50BiN
 
-Two tools are provided for analysis and visualization:
-- `catmerge`
-- `plotcurve`
+Three tools are provided for analysis and visualization:
+1. `mergecat`
+2. `correctphot`
+3. `plotcurve`
 
 
 ## Usage
-### `catmerge`
+### `mergecat`
 This program combines all the frames into a single catalogue, which includes three steps:
 1. Find the reference frame
 2. Merge the frames
@@ -27,29 +28,52 @@ Once the reference frame is decided, each star in all other frames is matched by
 
 The non-variable candidates are selected if their variance of magnitude difference (`std(m1-m2)`) is smaller than `sdev` (default: 0.006 mag).
 
-The output files include:
-- `std.dat`: magnitude difference of non-variable candidates pair
-- `mdev.dat`: non-variable candidates index
-- `stdstar0.dat`: photometry of non-variable candidates in the reference frame (columns: `ra`, `dec`, `apmag`, `apmag_err`, `psfmag`, `psfmag_err`)
-- `*gcat.pkl`: python pickle file that contains all data
 ```
-Usage: catmerge.py [OPTIONS]
+Usage: mergecat.py [OPTIONS]
 
 Options:
-  --phot_flag INTEGER      Magnitude type. 0: original aperture
-                           photometry; 1: aperture photometry with
-                           star center refitted by PSF
+  --phot_flag INTEGER      Magnitude type. 0: original aperture photometry; 1:
+                           aperture photometry with star center refitted by
+                           PSF
   --dmatch FLOAT           Position matching distance in arcsec
   --sdev FLOAT             Standard deviation for none variable selection
-  --medframe_factor FLOAT  A factor on average star number in a
-                           frame for reference frame selection
+  --medframe_factor FLOAT  A factor on average star number in a frame for
+                           reference frame selection
   --obs_flag TEXT          Observatory flag. 'd': Delingha; 'l': Lenghu
   --help                   Show this message and exit.
 ```
 
-### `plotcurve`
-This program is to present the data in time-series light curve. It also applies differential stellar photometry. The details of this method will be discussed in the following post. 
+The output files include:
+- `stdstar.dat`: photometry of non-variable candidates in the reference frame (columns: `ra`, `dec`, `apmag`, `apmag_err`, `psfmag`, `psfmag_err`)
+- `*{phot_flag}gcat.pkl`: python pickle file that contains all data as a python dictionary
 
+### `correctphot`
+This program is to calibrate the intrumental photometry via differential photometry method. 
+
+No external standard stars are required. Instead, the brightest `noc` (default: 5) standard stars from `stdstar.dat` are used to conduct the ensemble photometry, that is, using the average chaning behavior of these standard stars over frames to correct the photometry of the remaining stars. 
+
+`magtype` controls which magnitude to used in this process. `a` for aperture photometry and `p` for psf photometry.
+
+
+
+```
+Usage: correctphot.py [OPTIONS] INPUT_FILE_NAME
+
+  Input catalog file from catmerge (.pkl)
+
+Options:
+  --magtype TEXT  magnitude type. a: aperture; p: psf
+  --noc INTEGER   Number of selected standard stars
+  --help          Show this message and exit.
+
+```
+The output files include:
+- `*gcat_mmag`: average brightness of each star (`index`, `ra`, `dec`, `mmag`, `mmag_err`)
+- `{phot_flag}{mag_type}gcat_cal.pkl`: python pickle file that contains all data
+
+
+### `plotcurve`
+This program is to present the data in time-series light curve. It can also show the magnitude versus airmass.
 
 ```
 Usage: plotcurve.py [OPTIONS] INPUT_FILE_NAME
@@ -57,10 +81,7 @@ Usage: plotcurve.py [OPTIONS] INPUT_FILE_NAME
   Input catalog file from catmerge (.pkl)
 
 Options:
-  --magtype TEXT                 magnitude type. a: aperture; p: psf
-  --noc INTEGER                  Number of selected standard stars
   -i, --init_star_index INTEGER  Index of star to plot
-  --plot_flag BOOLEAN            Enter interactive plot
   --help                         Show this message and exit.
 ```
 
@@ -78,8 +99,6 @@ You can interact with the plot through the keyboard:
 The output files include:
 - `*.orig`: original photometry of one star (`index`, `mjd`, `ut`, `mag`, `mag_err`)
 - `*.dat`: corrected photometry of one star (`index`, `mjd`, `ut`, `magx`, `magx_err`)
-- `*gcat_mmag`: average brightness of each star (`index`, `ra`, `dec`, `mmag`, `mmag_err`)
-- `*gcat_cal.pkl`: python pickle file that contains all data
 
 
 ## Install
@@ -93,5 +112,5 @@ $ pip install -U git+git://github.com/swj1442291549/50BiN
 
 Afterwards, the program should be available:
 ```bash
-$ catmerge
+$ mergecat
 ```
