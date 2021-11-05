@@ -10,7 +10,9 @@ from tqdm import tqdm
 
 @click.command()
 @click.argument("input_file_name", type=str)
-@click.option("-i", "--init_star_index", type=int, default=0, help="Index of star to plot")
+@click.option(
+    "-i", "--init_star_index", type=int, default=0, help="Index of star to plot"
+)
 def cli(input_file_name, init_star_index):
     """Input catalog file from catmerge (.pkl)"""
     if not Path(input_file_name).is_file():
@@ -23,7 +25,9 @@ def cli(input_file_name, init_star_index):
         print("This catalog has alreadly contained corrected photometry")
         plot_lc(input_file_name, init_star_index)
     else:
-        print("This catalog does not have corrected photometry! Please run command `correctphot` in advance!")
+        print(
+            "This catalog does not have corrected photometry! Please run command `correctphot` in advance!"
+        )
         return
 
 
@@ -165,7 +169,7 @@ def plot_lc(file_name, init_star_index):
         ommag_err,
         nframe_date_list,
         mjd_date_list,
-        ncs
+        ncs,
     ) = itemgetter(
         "nframe",
         "medframe_index",
@@ -219,7 +223,13 @@ def plot_lc(file_name, init_star_index):
                 star_index -= 1
         elif event.key == "s":
             save_single_phot(
-                file_name, magtype, star_index, frame_info["amjd"], coord, magmatch, magx
+                file_name,
+                magtype,
+                star_index,
+                frame_info["amjd"],
+                coord,
+                magmatch,
+                magx,
             )
             return
         elif event.key == "d":
@@ -276,12 +286,14 @@ def plot_lc(file_name, init_star_index):
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.title(title)
-        print("#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}   ##: {4:d}".format(
-            star_index,
-            ommag[star_index],
-            *coord_to_str(coord[star_index][0], coord[star_index][1]),
-            len(lc)
-        ))
+        print(
+            "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}   ##: {4:d}".format(
+                star_index,
+                ommag[star_index],
+                *coord_to_str(coord[star_index][0], coord[star_index][1]),
+                len(lc)
+            )
+        )
         plt.ylim(min(y2) - 0.05, max(y2) + 0.05)
         plt.gca().invert_yaxis()
         plt.draw()
@@ -297,12 +309,14 @@ def plot_lc(file_name, init_star_index):
         ommag[star_index],
         *coord_to_str(coord[star_index][0], coord[star_index][1])
     )
-    print("#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}   ##: {4:d}".format(
-        star_index,
-        ommag[star_index],
-        *coord_to_str(coord[star_index][0], coord[star_index][1]),
-        len(lc)
-    ))
+    print(
+        "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}   ##: {4:d}".format(
+            star_index,
+            ommag[star_index],
+            *coord_to_str(coord[star_index][0], coord[star_index][1]),
+            len(lc)
+        )
+    )
     ax.scatter(x, y1, s=4, c="C0")
     ax.scatter(x, y2, s=4, c="C1")
     ax.hlines(ommag[star_index], min(x), max(x), linestyles="dashed", colors="red")

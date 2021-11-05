@@ -58,8 +58,10 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
             coord_list.append(cat[:, 18:20].astype(float))
     frame_info = pd.DataFrame(info_dict_list)
     nframe = len(frame_info)
-    mjd_date_list = np.sort(list(set(frame_info.mjd)))  
-    nframe_date_list = [len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list]
+    mjd_date_list = np.sort(list(set(frame_info.mjd)))
+    nframe_date_list = [
+        len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list
+    ]
     ndate = len(mjd_date_list)
     print("Read {0:d} frames of {1:d} nights".format(nframe, ndate))
 
@@ -107,7 +109,6 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
             if match_flag == False:
                 nomatch[j] += 1
 
-
     # Define standard candidate stars for differential photometry
     std = np.arange(nstar)
     nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
@@ -132,7 +133,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
             j2 = istd[k2]
             m1 = psfmagmatch[j1, :, 0]
             m2 = psfmagmatch[j2, :, 0]
-            dm = (m1 - m2)  # Magnitude difference between j1 and j2
+            dm = m1 - m2  # Magnitude difference between j1 and j2
             idm = len(dm[~np.isnan(dm)])  # Number of frame with non-nan records
             sdm = np.nanmean(dm)  # Average magnitude difference
             sig = np.nansum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
@@ -151,9 +152,10 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
                 break
     print("# Std Stars: {0:d}".format(len(ncs)))
 
-
     with open("stdstar.dat", "w") as f:
-        f.write("             ra             dec      apmag  apmag_err     psfmag psfmag_err\n")
+        f.write(
+            "             ra             dec      apmag  apmag_err     psfmag psfmag_err\n"
+        )
         for j in range(len(ncs)):
             f.write(
                 "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
@@ -166,7 +168,6 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
                 )
             )
     print("Save standard stars info in {0}".format("stdstar.dat"))
-
 
     # Write merged uncalibrated data into a file
     if ndate > 1:
@@ -181,18 +182,20 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
         )
 
     mergecat_dict = {
-        "nframe": nframe, # number of frames
-        "medframe_index": medframe_index, # index of the reference frame (used to match stars)
-        "nstar": info_dict_list[medframe_index]["nstar"], # number of stars in the reference frame
-        "ndate": ndate, # number of MJD dates
-        "frame_info": frame_info, # frame into data
-        "nomatch": nomatch, # number of non-match frames
-        "coord": coord_list[medframe_index], # coordinates
-        "psfmagmatch": psfmagmatch, # PSF magnitude
-        "apmagmatch": apmagmatch, # Aperature magnitude
-        "nframe_date_list": nframe_date_list, # number of frames in each date
-        "mjd_date_list": mjd_date_list, # MJD of each date
-        "ncs": ncs, # index of standard stars
+        "nframe": nframe,  # number of frames
+        "medframe_index": medframe_index,  # index of the reference frame (used to match stars)
+        "nstar": info_dict_list[medframe_index][
+            "nstar"
+        ],  # number of stars in the reference frame
+        "ndate": ndate,  # number of MJD dates
+        "frame_info": frame_info,  # frame into data
+        "nomatch": nomatch,  # number of non-match frames
+        "coord": coord_list[medframe_index],  # coordinates
+        "psfmagmatch": psfmagmatch,  # PSF magnitude
+        "apmagmatch": apmagmatch,  # Aperature magnitude
+        "nframe_date_list": nframe_date_list,  # number of frames in each date
+        "mjd_date_list": mjd_date_list,  # MJD of each date
+        "ncs": ncs,  # index of standard stars
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
     print("Save python pickle data in {0}".format(mergecat_file_name))
@@ -216,7 +219,6 @@ def read_obs_location(obs_flag):
             lat=38.6068 * u.deg, lon=93.8961 * u.deg, height=4200 * u.m
         )
     return mountain
-
 
 
 def read_cat_and_info(file_name):
@@ -285,8 +287,8 @@ def read_cat_and_info(file_name):
     cat = cat.to_numpy()
     ap_nan_index = (cat[:, 11] > 30) | (cat[:, 12] > 3.0)
     psf_nan_index = (cat[:, 7] > 30) | (cat[:, 8] > 3.0)
-    cat[ap_nan_index, 11: 13] = np.nan
-    cat[psf_nan_index, 7: 9] = np.nan
+    cat[ap_nan_index, 11:13] = np.nan
+    cat[psf_nan_index, 7:9] = np.nan
 
     with open(file_name, "r") as f:
         header_line = f.readline()
@@ -315,6 +317,7 @@ def read_cat_and_info(file_name):
         "nstar": nstar,
     }
     return cat, info_dict
+
 
 def convert_str_to_float(string):
     """Convert str to float
@@ -378,4 +381,3 @@ def find_medframe_index_airmass(frame_info):
 
 if __name__ == "__main__":
     cli()
-

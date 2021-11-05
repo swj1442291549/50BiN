@@ -34,7 +34,7 @@ def cli(input_file_name, magtype, noc):
         apmagmatch,
         nframe_date_list,
         mjd_date_list,
-        ncs
+        ncs,
     ) = itemgetter(
         "nframe",
         "medframe_index",
@@ -47,7 +47,7 @@ def cli(input_file_name, magtype, noc):
         "apmagmatch",
         "nframe_date_list",
         "mjd_date_list",
-        "ncs"
+        "ncs",
     )(
         mergecat_dict
     )
@@ -63,7 +63,6 @@ def cli(input_file_name, magtype, noc):
         return
     ncs = ncs[:noc]
 
-
     if magtype == "a":
         magmatch = apmagmatch
     else:
@@ -77,7 +76,11 @@ def cli(input_file_name, magtype, noc):
     # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
 
     for i in range(noc):
-        print("{0:3d} Std star ID: {1:3d}   mmag: {2:8.5f}   mmag_std: {3:8.5f}".format(i, ncs[i], np.nanmean(magx[ncs[i], :, 0]), np.nanstd(magx[ncs[i], :, 0])))
+        print(
+            "{0:3d} Std star ID: {1:3d}   mmag: {2:8.5f}   mmag_std: {3:8.5f}".format(
+                i, ncs[i], np.nanmean(magx[ncs[i], :, 0]), np.nanstd(magx[ncs[i], :, 0])
+            )
+        )
 
     # Save average magnitude for each star
     mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
@@ -112,31 +115,70 @@ def cli(input_file_name, magtype, noc):
         "ommag_err": ommag_err,
         "nframe_date_list": nframe_date_list,
         "mjd_date_list": mjd_date_list,
-        "ncs": ncs
+        "ncs": ncs,
     }
     pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
     print("Save corrected python pickle data in {0}".format(final_catfile_name))
 
 
-def airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list):
+def airmass_correct_phot(
+    magmatch,
+    nstar,
+    frame_info,
+    ncs,
+    medframe_index,
+    nframe,
+    bestframe_index_date_list,
+    nframe_date_list,
+    ndate,
+    mjd_date_list,
+):
     ncs_magmatch_delta = np.copy(magmatch[ncs, :, 0])
     magx_delta = np.zeros((nstar, nframe))
     magx = np.copy(magmatch)
     magmatch_best_noairmass = np.zeros((nstar, ndate))
     bad_frame_index_list = list()
     for i in range(ndate):
-        ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[ncs, bestframe_index_date_list[i], 0]).T
-        ncs_magmatch_delta_mean_date = np.nanmean(ncs_magmatch_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))], axis=0) #? maybe not mean
+        ncs_magmatch_delta[
+            :, int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1]))
+        ] = np.subtract(
+            magmatch[
+                ncs,
+                int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1])),
+                0,
+            ].T,
+            magmatch[ncs, bestframe_index_date_list[i], 0],
+        ).T
+        ncs_magmatch_delta_mean_date = np.nanmean(
+            ncs_magmatch_delta[
+                :, int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1]))
+            ],
+            axis=0,
+        )  # ? maybe not mean
         airmass = frame_info[frame_info.mjd == mjd_date_list[i]].airmass
-        mag_delta_date = pd.DataFrame({'airmass': airmass, "delta": ncs_magmatch_delta_mean_date})
+        mag_delta_date = pd.DataFrame(
+            {"airmass": airmass, "delta": ncs_magmatch_delta_mean_date}
+        )
         popt, perr, bad_frame_index = fit_airmass_delta_zeropoint(mag_delta_date)
         bad_frame_index_list.append(bad_frame_index)
 
-        magmatch_delta = np.subtract(magmatch[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0].T, magmatch[:, bestframe_index_date_list[i], 0]).T
-        magx_delta[:, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1]))] = np.subtract(magmatch_delta, np.polyval(popt, airmass))
+        magmatch_delta = np.subtract(
+            magmatch[
+                :,
+                int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1])),
+                0,
+            ].T,
+            magmatch[:, bestframe_index_date_list[i], 0],
+        ).T
+        magx_delta[
+            :, int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1]))
+        ] = np.subtract(magmatch_delta, np.polyval(popt, airmass))
         magmatch_best = magmatch[:, bestframe_index_date_list[i], 0]
-        magmatch_best_noairmass[:, i] = magmatch_best - popt[0] * frame_info.loc[bestframe_index_date_list[i]].airmass
-    ommag = np.nanmean(magmatch_best_noairmass, axis=1) # TODO improve
+        magmatch_best_noairmass[:, i] = (
+            magmatch_best
+            - popt[0] * frame_info.loc[bestframe_index_date_list[i]].airmass
+        )
+    ommag = np.nanmean(magmatch_best_noairmass, axis=1)  # TODO improve
     ommag_err = np.nanstd(magmatch_best_noairmass, axis=1)
     magx[:, :, 0] = np.add(magx_delta.T, ommag).T
     frame_info = frame_info.assign(bad=False)
@@ -163,7 +205,9 @@ def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, 
     """
     print("Calibrating stars ...")
     magx = np.copy(magmatch)
-    ncs_magmatch_delta = np.subtract(magmatch[ncs, :, 0].T, magmatch[ncs, medframe_index, 0]).T
+    ncs_magmatch_delta = np.subtract(
+        magmatch[ncs, :, 0].T, magmatch[ncs, medframe_index, 0]
+    ).T
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         ncs_magmatch_delta_mean = np.nanmean(ncs_magmatch_delta, axis=0)
@@ -176,40 +220,68 @@ def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, 
         ommag_err = np.zeros(nstar) * np.nan
         for i in range(nstar):
             sel = magx_abs_delta_ratio[i] < 3
-            ommag[i] = np.nanmean(magx[i,:,0][sel])
-            ommag_err[i] = np.nanmean(magx[i,:,1][sel])
+            ommag[i] = np.nanmean(magx[i, :, 0][sel])
+            ommag_err[i] = np.nanmean(magx[i, :, 1][sel])
     return magx, ommag, ommag_err
 
 
 def fit_airmass_delta(mag_delta_date):
-    mag_delta_date = mag_delta_date[0.583 * mag_delta_date.airmass -0.566 > mag_delta_date.delta]
+    mag_delta_date = mag_delta_date[
+        0.583 * mag_delta_date.airmass - 0.566 > mag_delta_date.delta
+    ]
     popt, pcov = np.polyfit(mag_delta_date.airmass, mag_delta_date.delta, 1, cov=True)
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
 
+
 def fit_airmass_delta_zeropoint(mag_delta_date):
     # TODO improve
-    mag_delta_date_1 = mag_delta_date[(0.583 * mag_delta_date.airmass -0.566 > mag_delta_date.delta) & (mag_delta_date.airmass > 1.5)]
-    k = np.nanmedian(mag_delta_date_1.delta / (mag_delta_date_1.airmass - min(mag_delta_date.airmass)))
+    mag_delta_date_1 = mag_delta_date[
+        (0.583 * mag_delta_date.airmass - 0.566 > mag_delta_date.delta)
+        & (mag_delta_date.airmass > 1.5)
+    ]
+    k = np.nanmedian(
+        mag_delta_date_1.delta
+        / (mag_delta_date_1.airmass - min(mag_delta_date.airmass))
+    )
     popt = (k, -min(mag_delta_date.airmass) * k)
     perr = (0, 0)
     # mag_delta_date_1 = mag_delta_date[(0.583 * mag_delta_date.airmass -0.566 > mag_delta_date.delta)]
     # mag_delta_date_1 = mag_delta_date_1.append({"airmass": min(mag_delta_date.airmass), "delta": 0}, ignore_index=True)
     # popt, pcov = np.polyfit(mag_delta_date_1.airmass, mag_delta_date_1.delta, 1, cov=True)
     # perr = np.sqrt(np.diag(pcov))
-    bad_frame_index = mag_delta_date[(mag_delta_date.delta - np.polyval(popt, mag_delta_date.airmass)) > 0.1].index
+    bad_frame_index = mag_delta_date[
+        (mag_delta_date.delta - np.polyval(popt, mag_delta_date.airmass)) > 0.1
+    ].index
     return popt, perr, bad_frame_index
+
 
 def get_bestframe_index(ndate, magmatch, ncs, nframe_date_list):
     bestframe_index_date_list = list()
     for i in range(ndate):
-        ncs_magmatch_mag_date = magmatch[ncs, int(sum(nframe_date_list[:i])): int(sum(nframe_date_list[:i+1])), 0]
-        ncs_magmatch_magshift_date = np.subtract(ncs_magmatch_mag_date.T, np.nanmean(ncs_magmatch_mag_date, axis=1)).T
+        ncs_magmatch_mag_date = magmatch[
+            ncs, int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1])), 0
+        ]
+        ncs_magmatch_magshift_date = np.subtract(
+            ncs_magmatch_mag_date.T, np.nanmean(ncs_magmatch_mag_date, axis=1)
+        ).T
         ncs_magmatch_magmean_date = np.nanmean(ncs_magmatch_magshift_date, axis=0)
         smoothen = 5
-        x_ncs_magmatch_magmean_date = np.pad(ncs_magmatch_magmean_date, (smoothen//2, smoothen-smoothen//2), mode='edge')
-        x_ncs_magmatch_magmean_date = np.cumsum(x_ncs_magmatch_magmean_date[smoothen:] - x_ncs_magmatch_magmean_date[:-smoothen]) / smoothen
-        bestframe_index_date_list.append(x_ncs_magmatch_magmean_date.argmin() + int(sum(nframe_date_list[:i])))
+        x_ncs_magmatch_magmean_date = np.pad(
+            ncs_magmatch_magmean_date,
+            (smoothen // 2, smoothen - smoothen // 2),
+            mode="edge",
+        )
+        x_ncs_magmatch_magmean_date = (
+            np.cumsum(
+                x_ncs_magmatch_magmean_date[smoothen:]
+                - x_ncs_magmatch_magmean_date[:-smoothen]
+            )
+            / smoothen
+        )
+        bestframe_index_date_list.append(
+            x_ncs_magmatch_magmean_date.argmin() + int(sum(nframe_date_list[:i]))
+        )
     return bestframe_index_date_list
 
 
