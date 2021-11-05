@@ -122,6 +122,7 @@ def cli(input_file_name, magtype, noc, plot_flag, init_star_index):
         "ommag": ommag,
         "ommag_err": ommag_err,
         "nframe_date_list": nframe_date_list,
+        "mjd_date_list": mjd_date_list,
         "ncs": ncs
     }
     pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
@@ -366,6 +367,7 @@ def plot_lc(file_name, init_star_index):
         ommag,
         ommag_err,
         nframe_date_list,
+        mjd_date_list,
         ncs
     ) = itemgetter(
         "nframe",
@@ -382,6 +384,7 @@ def plot_lc(file_name, init_star_index):
         "ommag",
         "ommag_err",
         "nframe_date_list",
+        "mjd_date_list",
         "ncs",
     )(
         mergecat_dict
