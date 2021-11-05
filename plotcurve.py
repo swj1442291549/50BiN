@@ -146,6 +146,7 @@ def plot_lc(file_name, init_star_index):
     z: zoom out
     Z: zoom in
     s: save the data of this star 
+    q: quit
 
     Args:
         file_name (str): pkl file name with magx

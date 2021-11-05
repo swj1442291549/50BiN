@@ -73,6 +73,7 @@ You can interact with the plot through the keyboard:
 - `z`: zoom out
 - `Z`: zoom in
 - `s`: save the data of this star 
+- `q`: quit
 
 The output files include:
 - `*.orig`: original photometry of one star (`index`, `mjd`, `ut`, `mag`, `mag_err`)
