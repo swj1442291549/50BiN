@@ -306,43 +306,45 @@ def plot_lc(file_name, init_star_index):
         if not airmass_flag:
             if mjd_index != -1:
                 lc = lc[lc.mjd == mjd_date_list[mjd_index]]
-            if mday_flag:
-                x = lc.amjd - int(min(lc.amjd))
-            else:
-                x = lc.mid_time
             xlabel = "MJD"
-            y1 = lc.mag
-            y2 = lc.magx
-            plt.scatter(x, y1, s=4, c="C0")
-            plt.scatter(x, y2, s=4, c="C1")
-            plt.hlines(
-                ommag[star_index], min(x), max(x), linestyles="dashed", colors="red"
-            )
-            plt.ylim(np.percentile(y2, 3) - mag_surronding, np.percentile(y2, 97) + mag_surronding)
-            plt.gca().invert_yaxis()
+            if len(lc) > 0:
+                if mday_flag:
+                    x = lc.amjd - int(min(lc.amjd))
+                else:
+                    x = lc.mid_time
+                y1 = lc.mag
+                y2 = lc.magx
+                plt.scatter(x, y1, s=4, c="C0")
+                plt.scatter(x, y2, s=4, c="C1")
+                plt.hlines(
+                    ommag[star_index], min(x), max(x), linestyles="dashed", colors="red"
+                )
+                plt.ylim(np.percentile(y2, 3) - mag_surronding, np.percentile(y2, 97) + mag_surronding)
+                plt.gca().invert_yaxis()
         else:
             if mjd_index != -1:
                 lc = lc[lc.mjd == mjd_date_list[mjd_index]]
-            x = lc.airmass
             xlabel = "airmass"
+            if len(lc) > 0:
+                x = lc.airmass
 
-            y1 = lc.mag
-            y2 = lc.magx
-            # plt.scatter(x, y1, s=4, c="C0")
-            cmap = cm.get_cmap("rainbow")
-            if mjd_index == -1:
-                scatter = plt.scatter(x, y1, s=4, c=lc.mjd, cmap="rainbow")
-                plt.legend(*scatter.legend_elements())
-            else:
-                plt.scatter(x, y1, s=4, color=cmap((mjd_date_list[mjd_index] - min(mjd_date_list)) / (max(mjd_date_list) - min(mjd_date_list))))
-                
-            plt.ylim(np.percentile(y2, 3) - mag_surronding, np.percentile(y2, 97) + mag_surronding)
-            plt.gca().invert_yaxis()
+                y1 = lc.mag
+                y2 = lc.magx
+                # plt.scatter(x, y1, s=4, c="C0")
+                cmap = cm.get_cmap("rainbow")
+                if mjd_index == -1:
+                    scatter = plt.scatter(x, y1, s=4, c=lc.mjd, cmap="rainbow")
+                    plt.legend(*scatter.legend_elements())
+                else:
+                    plt.scatter(x, y1, s=4, color=cmap((mjd_date_list[mjd_index] - min(mjd_date_list)) / (max(mjd_date_list) - min(mjd_date_list))))
+                    
+                plt.ylim(np.percentile(y2, 3) - mag_surronding, np.percentile(y2, 97) + mag_surronding)
+                plt.gca().invert_yaxis()
         ylabel = "Magnitude"
         title = "#: {0:4d}  M = {1:.2f}  RA: {3}  DEC: {4}  MJD+{2:d}".format(
             star_index,
             ommag[star_index],
-            int(min(lc.amjd)),
+            int(min(lc.amjd, default=0)),
             *coord_to_str(coord[star_index][0], coord[star_index][1])
         )
         plt.title(title)
