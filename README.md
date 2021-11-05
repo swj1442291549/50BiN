@@ -7,6 +7,20 @@ Three tools are provided for analysis and visualization:
 3. `plotcurve`
 
 
+## Install
+To use this script, `virtualenv` is highly recommended (but not required). Please check [this website](https://virtualenv.pypa.io/en/latest/installation.html) for an installation guidance.
+
+```bash
+$ virtualenv venv
+$ . venv/bin/activate
+$ pip install -U git+git://github.com/swj1442291549/50BiN
+```
+
+Afterwards, the program should be available:
+```bash
+$ mergecat
+```
+
 ## Usage
 ### `mergecat`
 This program combines all the frames into a single catalogue, which includes three steps:
@@ -98,17 +112,3 @@ The output files include:
 - `*.orig`: original photometry of one star (`index`, `mjd`, `ut`, `mag`, `mag_err`)
 - `*.dat`: corrected photometry of one star (`index`, `mjd`, `ut`, `magx`, `magx_err`)
 
-
-## Install
-To use this script, `virtualenv` is highly recommended (but not required). Please check [this website](https://virtualenv.pypa.io/en/latest/installation.html) for an installation guidance.
-
-```bash
-$ virtualenv venv
-$ . venv/bin/activate
-$ pip install -U git+git://github.com/swj1442291549/50BiN
-```
-
-Afterwards, the program should be available:
-```bash
-$ mergecat
-```
