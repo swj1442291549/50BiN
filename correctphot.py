@@ -4,7 +4,6 @@ import pandas as pd
 from operator import itemgetter
 import click
 import numpy as np
-from tqdm import tqdm
 import warnings
 
 
@@ -73,7 +72,7 @@ def cli(input_file_name, magtype, noc):
     )
 
     # bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
-    # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
+    # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
 
     for i in range(noc):
         print(
@@ -126,7 +125,6 @@ def airmass_correct_phot(
     nstar,
     frame_info,
     ncs,
-    medframe_index,
     nframe,
     bestframe_index_date_list,
     nframe_date_list,

@@ -77,7 +77,6 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
 
     medframe_index = find_medframe_index(frame_info, medframe_factor)
     nstar = frame_info.loc[medframe_index]["nstar"]
-    cat_ref, info_ref_dict = read_cat_and_info(catfile_list[medframe_index])
 
     # Merge the catalogs
     # Use medframe as a reference, looking for each stars in all other frames by matching coordinates
@@ -106,13 +105,14 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
                 apmagmatch[j, k, 1] = cat[j, 12]
                 psfmagmatch[j, k, 0] = cat[j, 7]
                 psfmagmatch[j, k, 1] = cat[j, 8]
-            if match_flag == False:
+            if not match_flag:
                 nomatch[j] += 1
 
     # Define standard candidate stars for differential photometry
     std = np.arange(nstar)
     nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
     calib_flag = True
+    istd = list()
     while calib_flag:
         istd = std[(nomatch < nmlim)]
         if len(istd) > int(nstar * 0.2):
@@ -214,11 +214,12 @@ def read_obs_location(obs_flag):
         mountain = EarthLocation(
             lat=37.373 * u.deg, lon=97.56 * u.deg, height=3200 * u.m
         )
+        return mountain
     elif obs_flag == "l":
         mountain = EarthLocation(
             lat=38.6068 * u.deg, lon=93.8961 * u.deg, height=4200 * u.m
         )
-    return mountain
+        return mountain
 
 
 def read_cat_and_info(file_name):
@@ -291,7 +292,7 @@ def read_cat_and_info(file_name):
     cat[psf_nan_index, 7:9] = np.nan
 
     with open(file_name, "r") as f:
-        header_line = f.readline()
+        f.readline()
         info_line = f.readline()
     info_list = list(filter(None, info_line[:-1].split(" ")))
     start_time = datetime.strptime(
@@ -348,7 +349,6 @@ def find_medframe_index(frame_info, medframe_factor):
         medframe_index: index of medframe in catfile_list
     """
     ns = frame_info.nstar
-    nfmean = medframe_factor * np.sum(ns) / len(ns)
     medframe_index = np.abs(ns - np.sum(ns) / len(ns) * medframe_factor).idxmin()
     print(
         "Reference frame: {0}  # Stars: {1:3d}".format(

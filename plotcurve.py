@@ -1,11 +1,9 @@
 import pickle
 from pathlib import Path
-import pandas as pd
 from operator import itemgetter
 from matplotlib import pyplot as plt
 import click
 import numpy as np
-from tqdm import tqdm
 
 
 @click.command()
