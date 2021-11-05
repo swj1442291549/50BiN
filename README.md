@@ -20,7 +20,7 @@ The raw data have four types of files, with different extensions:
 - `*.allmag0`: the combination of the previous two
 - `*.allmag1`: similar to `*.allmag0`, but the aperture photometry is calculated with star center refitted by PSF
 
-`phot_flag` (default: 0) controls which aperture photometry (`apmag`) to be used. It has no interference with PSF photometry (`psfmag`).
+`phot_flag` (default: 0) controls which aperture photometry (`apmag`) to be used. 0: original aperture photometry; 1: aperture photometry with star center refitted by PSF. It has no interference with PSF photometry (`psfmag`).
 
 A reference frame, which will be used to match other frames, is selected based on the number of stars. Note, the size of the catalogue is determined by that of the reference frame. The number of stars for the reference frame is set to be `medframe_factor` (default: 1.2) times the mean number. 
 
@@ -45,7 +45,7 @@ Options:
 
 The output files include:
 - `stdstar.dat`: photometry of non-variable candidates in the reference frame (columns: `ra`, `dec`, `apmag`, `apmag_err`, `psfmag`, `psfmag_err`)
-- `*{phot_flag}gcat.pkl`: python pickle file that contains all data as a python dictionary
+- `*.{phot_flag}gcat.pkl`: python pickle file that contains all data as a python dictionary
 
 ### `correctphot`
 This program is to calibrate the intrumental photometry via differential photometry method. 
@@ -54,33 +54,31 @@ No external standard stars are required. Instead, the brightest `noc` (default: 
 
 `magtype` controls which magnitude to used in this process. `a` for aperture photometry and `p` for psf photometry.
 
-
-
 ```
-Usage: correctphot.py [OPTIONS] INPUT_FILE_NAME
+Usage: correctphot.py [OPTIONS]
 
-  Input catalog file from catmerge (.pkl)
+  Calibrate the intrumental photometry
 
 Options:
-  --magtype TEXT  magnitude type. a: aperture; p: psf
-  --noc INTEGER   Number of selected standard stars
-  --help          Show this message and exit.
-
+  -f, --file_name TEXT  Input pkl file name
+  --magtype TEXT        magnitude type. a: aperture; p: psf
+  --noc INTEGER         Number of selected standard stars
+  --help                Show this message and exit.
 ```
 The output files include:
-- `*gcat_mmag`: average brightness of each star (`index`, `ra`, `dec`, `mmag`, `mmag_err`)
-- `{phot_flag}{mag_type}gcat_cal.pkl`: python pickle file that contains all data
+- `*.{phot_flag}{mag_type}gcat_mmag`: average brightness of each star (`index`, `ra`, `dec`, `mmag`, `mmag_err`)
+- `*.{phot_flag}{mag_type}gcat_cal.pkl`: python pickle file that contains all data
 
 
 ### `plotcurve`
 This program is to present the data in time-series light curve. It can also show the magnitude versus airmass.
-
 ```
-Usage: plotcurve.py [OPTIONS] INPUT_FILE_NAME
+Usage: plotcurve.py [OPTIONS]
 
-  Input catalog file from catmerge (.pkl)
+  Plot light curves
 
 Options:
+  -f, --file_name TEXT           Input pkl file name
   -i, --init_star_index INTEGER  Index of star to plot
   --help                         Show this message and exit.
 ```

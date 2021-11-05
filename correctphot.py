@@ -1,6 +1,7 @@
 import pickle
 from pathlib import Path
 import pandas as pd
+from glob import glob
 from operator import itemgetter
 import click
 import numpy as np
@@ -8,18 +9,27 @@ import warnings
 
 
 @click.command()
-@click.argument("input_file_name", type=str)
+@click.option("-f" ,"--file_name", type=str, help="Input pkl file name")
 @click.option(
     "--magtype", type=str, default="a", help="magnitude type. a: aperture; p: psf"
 )
-@click.option("--noc", type=int, default=10, help="Number of selected standard stars")
-def cli(input_file_name, magtype, noc):
-    """Input catalog file from catmerge (.pkl)"""
-    if not Path(input_file_name).is_file():
+@click.option("--noc", type=int, default=5, help="Number of selected standard stars")
+def cli(file_name, magtype, noc):
+    """Calibrate the intrumental photometry"""
+
+    candidate_file_list = glob("*gcat.pkl")
+    if len(candidate_file_list) == 1:
+        file_name= candidate_file_list[0]
+        print("Find {0}".format(file_name))
+    elif len(candidate_file_list) == 0:
+        print("No *gcat.pkl file is found! Please run command `mergecat` in advance!")
+    else:
+        print("More than one *gcat.pkl is found! Please specify which file to use by `correctphot -f FILE_NAME`")
+    if not Path(file_name).is_file():
         print("File not found!")
         return
 
-    mergecat_dict = pickle.load(open(input_file_name, "rb"))
+    mergecat_dict = pickle.load(open(file_name, "rb"))
 
     (
         nframe,
@@ -83,7 +93,7 @@ def cli(input_file_name, magtype, noc):
 
     # Save average magnitude for each star
     mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
-        input_file_name.split(".")[0], input_file_name.split(".")[1][0], magtype
+        file_name.split(".")[0],file_name.split(".")[1][0], magtype
     )
     with open(mmag_catfile_name, "w") as f:
         for i in range(nstar):
@@ -95,7 +105,7 @@ def cli(input_file_name, magtype, noc):
 
     # Save final catalog
     final_catfile_name = "{0}.{1}{2}gcat_cal.pkl".format(
-        input_file_name.split(".")[0], input_file_name.split(".")[1][0], magtype
+        file_name.split(".")[0],file_name.split(".")[1][0], magtype
     )
 
     mergecat_dict = {

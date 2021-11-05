@@ -39,6 +39,7 @@ from tqdm import tqdm
     help="Observatory flag. 'd': Delingha; 'l': Lenghu",
 )
 def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
+    """Merge the catalogs"""
     file_list_byte = subprocess.check_output(
         "ls *.allmag{0}".format(phot_flag), shell=True
     )

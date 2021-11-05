@@ -2,26 +2,36 @@ import pickle
 from pathlib import Path
 from operator import itemgetter
 from matplotlib import pyplot as plt
+from glob import glob
 from matplotlib import cm
 import click
 import numpy as np
 
 
 @click.command()
-@click.argument("input_file_name", type=str)
+@click.option("-f" ,"--file_name", type=str, help="Input pkl file name")
 @click.option(
     "-i", "--init_star_index", type=int, default=0, help="Index of star to plot"
 )
-def cli(input_file_name, init_star_index):
-    """Input catalog file from catmerge (.pkl)"""
-    if not Path(input_file_name).is_file():
+def cli(file_name, init_star_index):
+    """Plot light curves"""
+
+    candidate_file_list = glob("*gcat_cal.pkl")
+    if len(candidate_file_list) == 1:
+        file_name= candidate_file_list[0]
+        print("Find {0}".format(file_name))
+    elif len(candidate_file_list) == 0:
+        print("No *gcat_cal.pkl file is found! Please run command `correctphot` in advance!")
+    else:
+        print("More than one *gcat_cal.pkl is found! Please specify which file to use by `plotcurve -f FILE_NAME`")
+    if not Path(file_name).is_file():
         print("File not found!")
         return
 
-    mergecat_dict = pickle.load(open(input_file_name, "rb"))
+    mergecat_dict = pickle.load(open(file_name, "rb"))
 
     if "magx" in mergecat_dict.keys():
-        plot_lc(input_file_name, init_star_index)
+        plot_lc(file_name, init_star_index)
     else:
         print(
             "This catalog does not have corrected photometry! Please run command `correctphot` in advance!"
@@ -51,11 +61,11 @@ def coord_to_str(ra, dec):
     return ra_str, dec_str
 
 
-def save_single_phot(input_file_name, magtype, star_index, amjd, coord, magmatch, magx):
+def save_single_phot(file_name, magtype, star_index, amjd, coord, magmatch, magx):
     """Save single star's photometry into file
 
     Args:
-        input_file_name (str): input catalog pkl file name
+        file_name (str): input catalog pkl file name
         magtype (str): magtype input
         star_index (int): index of the star
         amjd (array): AMJD
@@ -65,14 +75,14 @@ def save_single_phot(input_file_name, magtype, star_index, amjd, coord, magmatch
     """
     ra_str, dec_str = coord_to_str(coord[star_index][0], coord[star_index][1])
     orig_file_name = "{0}.{1}{3}S{2:0>4d}.orig".format(
-        input_file_name.split(".")[0],
-        input_file_name.split(".")[1][0],
+        file_name.split(".")[0],
+        file_name.split(".")[1][0],
         star_index,
         magtype,
     )
     mag_file_name = "{0}.{1}{3}S{2:0>4d}.dat".format(
-        input_file_name.split(".")[0],
-        input_file_name.split(".")[1][0],
+        file_name.split(".")[0],
+        file_name.split(".")[1][0],
         star_index,
         magtype,
     )
