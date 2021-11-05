@@ -56,16 +56,12 @@ def cli(input_file_name, magtype, noc):
         amjd=frame_info.mjd + frame_info.mid_time / 24 - 0.5
     )  # convert observing time to modified julian day AMJD(1-nf)
 
-    print("total number of stars: {0:d}".format(nstar))
+    print("Total number of stars: {0:d}".format(nstar))
 
     if len(ncs) < noc:
         print("too few std stars selected")
         return
-    else:
-        ncs = ncs[:noc]
-        print("Std tot: {0:d}".format(noc))
-        for i in range(noc):
-            print("{0:3d} Std star ID: {1:4d}".format(i, ncs[i]))
+    ncs = ncs[:noc]
 
 
     if magtype == "a":
@@ -79,6 +75,9 @@ def cli(input_file_name, magtype, noc):
 
     # bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
     # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
+
+    for i in range(noc):
+        print("{0:3d} Std star ID: {1:3d}   mmag: {2:8.5f}   mmag_std: {3:8.5f}".format(i, ncs[i], np.nanmean(magx[ncs[i], :, 0]), np.nanstd(magx[ncs[i], :, 0])))
 
     # Save average magnitude for each star
     mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
@@ -117,6 +116,7 @@ def cli(input_file_name, magtype, noc):
     }
     pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
     print("Save corrected python pickle data in {0}".format(final_catfile_name))
+
 
 def airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list):
     ncs_magmatch_delta = np.copy(magmatch[ncs, :, 0])
