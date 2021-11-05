@@ -158,6 +158,7 @@ def plot_lc(file_name, init_star_index):
     a: switch airmass / ligt curve
     z: zoom out
     Z: zoom in
+    r: reset scale
     s: save the data of this star 
     q: quit
 
@@ -294,6 +295,9 @@ def plot_lc(file_name, init_star_index):
                 plt.text(text_x, text_y, "Light Curve", transform=plt.gca().transAxes)
             else:
                 plt.text(text_x, text_y, "AIRMASS", transform=plt.gca().transAxes)
+        elif event.key == 'r':
+            mag_surronding = 0.02
+            plt.text(text_x, text_y, "Reset", transform=plt.gca().transAxes)
         else:
             return
 

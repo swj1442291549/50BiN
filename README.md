@@ -105,6 +105,7 @@ You can interact with the plot through the keyboard:
 - `a`: switch airmass / light curve
 - `z`: zoom out
 - `Z`: zoom in
+- `r`: reset scale
 - `s`: save the data of this star 
 - `q`: quit
 
