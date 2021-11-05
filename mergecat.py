@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 from astropy.time import Time
 from datetime import datetime
-import subprocess
+from glob import glob
 import pandas as pd
 import click
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
@@ -40,10 +40,8 @@ from tqdm import tqdm
 )
 def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
     """Merge the catalogs"""
-    file_list_byte = subprocess.check_output(
-        "ls *.allmag{0}".format(phot_flag), shell=True
-    )
-    catfile_list = list(filter(None, file_list_byte.decode("utf8").split("\n")))
+    #TODO improve find + filter check
+    catfile_list = glob("*.allmag{0}".format(phot_flag))
     nframe = len(catfile_list)
 
     # Reading out all individual catalogs into cat_list, info_dict_list, coord_list
