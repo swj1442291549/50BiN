@@ -2,6 +2,7 @@ import pickle
 from pathlib import Path
 from operator import itemgetter
 from matplotlib import pyplot as plt
+from matplotlib import cm
 import click
 import numpy as np
 
@@ -20,7 +21,6 @@ def cli(input_file_name, init_star_index):
     mergecat_dict = pickle.load(open(input_file_name, "rb"))
 
     if "magx" in mergecat_dict.keys():
-        print("This catalog has alreadly contained corrected photometry")
         plot_lc(input_file_name, init_star_index)
     else:
         print(
@@ -150,6 +150,8 @@ def plot_lc(file_name, init_star_index):
     print("Plotting ...")
     if "s" in plt.rcParams["keymap.save"]:
         plt.rcParams["keymap.save"].remove("s")
+    if "a" in plt.rcParams["keymap.all_axes"]:
+        plt.rcParams["keymap.all_axes"].remove("a")
     mergecat_dict = pickle.load(open(file_name, "rb"))
     (
         nframe,
@@ -193,32 +195,57 @@ def plot_lc(file_name, init_star_index):
     else:
         magmatch = psfmagmatch
 
-    mjd_list = list(set(frame_info.mjd))
 
     global star_index
     global mday_flag
     global mjd_index
+    global airmass_flag
+    global mag_surronding
     star_index = init_star_index
     mjd_index = -1
     mday_flag = False
-    lc = prepare_lc_df(star_index, frame_info, magmatch, magx)
+    airmass_flag = False
+    mag_surronding = 0.02
+
 
     def on_key(event):
         global star_index
         global mday_flag
         global mjd_index
+        global airmass_flag
+        global mag_surronding
+        plt.clf()
+        text_x = 0.05
+        text_y = 0.02
+
         if event.key == "n":
             if mday_flag:
                 mjd_index += 1
-                mjd_index = mjd_index % len(mjd_list)
+                mjd_index = mjd_index % ndate
+                plt.text(text_x, text_y, "Day: ({0}/{1})".format(mjd_index + 1, ndate), transform=plt.gca().transAxes)
             else:
                 star_index += 1
+                print(
+                    "#: {0:4d}  M = {1:5.2f}  RA: {2}  DEC: {3}".format(
+                        star_index,
+                        ommag[star_index],
+                        *coord_to_str(coord[star_index][0], coord[star_index][1]),
+                    )
+                )
         elif event.key == "N":
             if mday_flag:
                 mjd_index -= 1
-                mjd_index = mjd_index % len(mjd_list)
+                mjd_index = mjd_index % ndate
+                plt.text(text_x, text_y, "Day: ({0}/{1})".format(mjd_index + 1, ndate), transform=plt.gca().transAxes)
             else:
                 star_index -= 1
+                print(
+                    "#: {0:4d}  M = {1:5.2f}  RA: {2}  DEC: {3}".format(
+                        star_index,
+                        ommag[star_index],
+                        *coord_to_str(coord[star_index][0], coord[star_index][1]),
+                    )
+                )
         elif event.key == "s":
             save_single_phot(
                 file_name,
@@ -234,95 +261,86 @@ def plot_lc(file_name, init_star_index):
             mday_flag = not mday_flag
             if not mday_flag:
                 mjd_index = -1
+                plt.text(text_x, text_y, "NORMAL mode", transform=plt.gca().transAxes)
+            else:
+                plt.text(text_x, text_y, "DAY mode", transform=plt.gca().transAxes)
+        elif event.key == "z":
+            mag_surronding *= 1.4
+            plt.text(text_x, text_y, "Zoom Out", transform=plt.gca().transAxes)
+        elif event.key == "Z":
+            mag_surronding /= 1.4
+            plt.text(text_x, text_y, "Zoom In", transform=plt.gca().transAxes)
+        elif event.key == "a":
+            airmass_flag = not airmass_flag
+            if not airmass_flag:
+                # mjd_index = -1
+                plt.text(text_x, text_y, "Light Curve", transform=plt.gca().transAxes)
+            else:
+                plt.text(text_x, text_y, "AIRMASS", transform=plt.gca().transAxes)
+        else:
+            return
 
-        plt.clf()
+        inner_plot(frame_info, magmatch, magx, star_index, mday_flag, mjd_index, airmass_flag, mag_surronding)
+        plt.draw()
+
+
+    def inner_plot(frame_info, magmatch, magx, star_index, mday_flag, mjd_index, airmass_flag, mag_surronding):
         lc = prepare_lc_df(star_index, frame_info, magmatch, magx)
-        if mjd_index != -1:
-            lc = lc[lc.mjd == mjd_list[mjd_index]]
-        if mday_flag:
-            x = lc.amjd - int(min(lc.amjd))
+        if not airmass_flag:
+            if mjd_index != -1:
+                lc = lc[lc.mjd == mjd_date_list[mjd_index]]
+            if mday_flag:
+                x = lc.amjd - int(min(lc.amjd))
+            else:
+                x = lc.mid_time
+            xlabel = "MJD"
             y1 = lc.mag
             y2 = lc.magx
-            xlabel = "MJD"
-            if mjd_index == -1:
-                title = "#: {0:4d}  M = {1:.2f}  RA: {3}  DEC: {4}  MJD+{2:d}".format(
-                    star_index,
-                    ommag[star_index],
-                    int(min(lc.amjd)),
-                    *coord_to_str(coord[star_index][0], coord[star_index][1])
-                )
-            else:
-                title = "#: {0:4d}  M = {1:.2f}  RA: {5}  DEC: {6}    MJD+{2:d} ({3}/{4})".format(
-                    star_index,
-                    ommag[star_index],
-                    int(min(lc.amjd)),
-                    mjd_index + 1,
-                    len(mjd_list),
-                    *coord_to_str(coord[star_index][0], coord[star_index][1])
-                )
             plt.scatter(x, y1, s=4, c="C0")
             plt.scatter(x, y2, s=4, c="C1")
             plt.hlines(
                 ommag[star_index], min(x), max(x), linestyles="dashed", colors="red"
             )
-            plt.title(title)
-            plt.draw()
+            plt.ylim(np.percentile(y2, 3) - mag_surronding, np.percentile(y2, 97) + mag_surronding)
+            plt.gca().invert_yaxis()
         else:
-            x = lc.mid_time
+            if mjd_index != -1:
+                lc = lc[lc.mjd == mjd_date_list[mjd_index]]
+            x = lc.airmass
+            xlabel = "airmass"
+
             y1 = lc.mag
             y2 = lc.magx
-            xlabel = "UT"
-            title = "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}".format(
-                star_index,
-                ommag[star_index],
-                *coord_to_str(coord[star_index][0], coord[star_index][1])
-            )
+            # plt.scatter(x, y1, s=4, c="C0")
+            cmap = cm.get_cmap("rainbow")
+            if mjd_index == -1:
+                scatter = plt.scatter(x, y1, s=4, c=lc.mjd, cmap="rainbow")
+                plt.legend(*scatter.legend_elements())
+            else:
+                plt.scatter(x, y1, s=4, color=cmap((mjd_date_list[mjd_index] - min(mjd_date_list)) / (max(mjd_date_list) - min(mjd_date_list))))
+                
+            plt.ylim(np.percentile(y2, 3) - mag_surronding, np.percentile(y2, 97) + mag_surronding)
+            plt.gca().invert_yaxis()
         ylabel = "Magnitude"
-        plt.scatter(x, y1, s=4, c="C0")
-        plt.scatter(x, y2, s=4, c="C1")
-        plt.hlines(ommag[star_index], min(x), max(x), linestyles="dashed", colors="red")
-        plt.ylabel(ylabel)
-        plt.xlabel(xlabel)
-        plt.title(title)
-        print(
-            "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}   ##: {4:d}".format(
-                star_index,
-                ommag[star_index],
-                *coord_to_str(coord[star_index][0], coord[star_index][1]),
-                len(lc)
-            )
+        title = "#: {0:4d}  M = {1:.2f}  RA: {3}  DEC: {4}  MJD+{2:d}".format(
+            star_index,
+            ommag[star_index],
+            int(min(lc.amjd)),
+            *coord_to_str(coord[star_index][0], coord[star_index][1])
         )
-        plt.ylim(min(y2) - 0.05, max(y2) + 0.05)
-        plt.gca().invert_yaxis()
-        plt.draw()
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
 
     fig, ax = plt.subplots(1, 1)
-    x = lc.mid_time
-    y1 = lc.mag
-    y2 = lc.magx
-    xlabel = "UT"
-    ylabel = "Magnitude (mag)"
-    title = "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}".format(
-        star_index,
-        ommag[star_index],
-        *coord_to_str(coord[star_index][0], coord[star_index][1])
-    )
+    inner_plot(frame_info, magmatch, magx, star_index, mday_flag, mjd_index, airmass_flag, mag_surronding)
     print(
-        "#: {0:4d}  M = {1:.2f}  RA: {2}  DEC: {3}   ##: {4:d}".format(
+        "#: {0:4d}  M = {1:5.2f}  RA: {2}  DEC: {3}".format(
             star_index,
             ommag[star_index],
             *coord_to_str(coord[star_index][0], coord[star_index][1]),
-            len(lc)
         )
     )
-    ax.scatter(x, y1, s=4, c="C0")
-    ax.scatter(x, y2, s=4, c="C1")
-    ax.hlines(ommag[star_index], min(x), max(x), linestyles="dashed", colors="red")
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel("Magnitude")
-    ax.set_title(title)
-    ax.set_ylim(min(y2) - 0.05, max(y2) + 0.05)
-    ax.invert_yaxis()
     fig.canvas.mpl_connect("key_press_event", on_key)
     plt.show()
 
