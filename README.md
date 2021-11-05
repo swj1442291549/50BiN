@@ -69,6 +69,9 @@ You can interact with the plot through the keyboard:
 - `n`: next star; next day (day mode)
 - `N`: previous star; previous day (day mode)
 - `d`: switch day mode
+- `a`: switch airmass / light curve
+- `z`: zoom out
+- `Z`: zoom in
 - `s`: save the data of this star 
 
 The output files include:

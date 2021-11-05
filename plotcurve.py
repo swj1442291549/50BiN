@@ -142,6 +142,9 @@ def plot_lc(file_name, init_star_index):
     n: next star; next day (day mode)
     N: previous star; previous day (day mode)
     d: switch day mode
+    a: switch airmass / ligt curve
+    z: zoom out
+    Z: zoom in
     s: save the data of this star 
 
     Args:
