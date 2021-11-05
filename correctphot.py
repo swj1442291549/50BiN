@@ -17,14 +17,17 @@ import warnings
 def cli(file_name, magtype, noc):
     """Calibrate the intrumental photometry"""
 
-    candidate_file_list = glob("*gcat.pkl")
-    if len(candidate_file_list) == 1:
-        file_name= candidate_file_list[0]
-        print("Find {0}".format(file_name))
-    elif len(candidate_file_list) == 0:
-        print("No *gcat.pkl file is found! Please run command `mergecat` in advance!")
-    else:
-        print("More than one *gcat.pkl is found! Please specify which file to use by `correctphot -f FILE_NAME`")
+    if file_name is None:
+        candidate_file_list = glob("*gcat.pkl")
+        if len(candidate_file_list) == 1:
+            file_name= candidate_file_list[0]
+            print("Find {0}".format(file_name))
+        elif len(candidate_file_list) == 0:
+            print("No *gcat.pkl file is found! Please run command `mergecat` in advance!")
+            return
+        else:
+            print("More than one *gcat.pkl is found! Please specify which file to use by `correctphot -f FILE_NAME`")
+            return 
     if not Path(file_name).is_file():
         print("File not found!")
         return

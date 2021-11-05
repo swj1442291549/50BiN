@@ -16,14 +16,17 @@ import numpy as np
 def cli(file_name, init_star_index):
     """Plot light curves"""
 
-    candidate_file_list = glob("*gcat_cal.pkl")
-    if len(candidate_file_list) == 1:
-        file_name= candidate_file_list[0]
-        print("Find {0}".format(file_name))
-    elif len(candidate_file_list) == 0:
-        print("No *gcat_cal.pkl file is found! Please run command `correctphot` in advance!")
-    else:
-        print("More than one *gcat_cal.pkl is found! Please specify which file to use by `plotcurve -f FILE_NAME`")
+    if file_name is None:
+        candidate_file_list = glob("*gcat_cal.pkl")
+        if len(candidate_file_list) == 1:
+            file_name= candidate_file_list[0]
+            print("Find {0}".format(file_name))
+        elif len(candidate_file_list) == 0:
+            print("No *gcat_cal.pkl file is found! Please run command `correctphot` in advance!")
+            return
+        else:
+            print("More than one *gcat_cal.pkl is found! Please specify which file to use by `plotcurve -f FILE_NAME`")
+            return
     if not Path(file_name).is_file():
         print("File not found!")
         return
