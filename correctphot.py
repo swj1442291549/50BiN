@@ -152,7 +152,6 @@ def airmass_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nfram
     return magx, ommag, ommag_err, frame_info
 
 
-
 def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe):
     """Correct photometry via differential method
 
@@ -169,51 +168,20 @@ def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, 
         ommag (float): average magnitude
         ommag_err (float): error of average magnitude
     """
-    magx = np.zeros_like(magmatch)
-    ommag = np.zeros(nstar)
-    ommag_err = np.zeros(nstar)
-    ut = frame_info.mid_time.values
-    magmatch_medframe = magmatch[ncs, medframe_index, 0]
-    for ipg in range(nstar):
-        magmatch[ipg, magmatch[ipg, :, 0] > 30, 1] = 0
-        magmatch[ipg, magmatch[ipg, :, 0] > 30, 0] = 0
-
     print("Calibrating stars ...")
-    for ipg in tqdm(range(nstar)):
-        mag2 = np.zeros(nframe)
-        err = np.zeros(nframe)
-        js1 = ipg
-        for k in range(nframe):
-            mag2[k] = magmatch[js1, k, 0]
-            err[k] = magmatch[js1, k, 1]
-            magx[js1, k, 0] = magmatch[js1, k, 0]
-            magx[js1, k, 1] = magmatch[js1, k, 1]
-
-            if k != medframe_index:
-                y = magmatch[ncs, k, 0]
-                dm0 = y - magmatch_medframe
-                dm0 = dm0[y > 1]
-                if magmatch[js1, k, 0] > 1:
-                    mag2[k] = magmatch[js1, k, 0] - np.sum(dm0) / len(dm0)
-                    magx[js1, k, 0] = mag2[k]
-                    err[k] = magmatch[js1, k, 1]
-                    magx[js1, k, 1] = magmatch[js1, k, 1]
-
-            else:
-                mag2[k] = magmatch[js1, medframe_index, 0]
-                err[k] = magmatch[js1, medframe_index, 1]
-
-        znone = mag2[(mag2 > 1) & (mag2 < 25)]
-        if len(znone) != 0:
-            zmean = np.mean(znone)
-            sig = np.sqrt(np.mean((znone - zmean) ** 2))
-
-            magb = mag2[np.abs(mag2 - zmean) < 3 * sig]
-            errb = magmatch[js1, :, 1][np.abs(mag2 - zmean) < 3 * sig]
-            utb = ut[(mag2 > 1) & (mag2 < 25) & (np.abs(mag2 - zmean) < 3 * sig)]
-            if len(magb) != 0:
-                ommag[ipg] = np.mean(magb)
-                ommag_err[ipg] = np.mean(err)
+    magx = np.copy(magmatch)
+    ncs_magmatch_delta = np.subtract(magmatch[ncs, :, 0].T, magmatch[ncs, medframe_index, 0]).T
+    ncs_magmatch_delta_mean = np.nanmean(ncs_magmatch_delta, axis=0)
+    magx[:, :, 0] = np.subtract(magmatch[:, :, 0], ncs_magmatch_delta_mean)
+    magx_mean = np.nanmean(magx[:, :, 0], axis=1)
+    magx_std = np.nanstd(magx[:, :, 0], axis=1, ddof=3)
+    magx_delta = np.subtract(magx[:, :, 0].T, magx_mean).T
+    magx_abs_delta_ratio = np.divide(np.abs(magx_delta).T, magx_std).T
+    ommag = np.zeros(nstar) * np.nan
+    ommag_err = np.zeros(nstar) * np.nan
+    for i in range(nstar):
+        ommag[i] = np.nanmean(magx[i,:,0][magx_abs_delta_ratio[i] < 3])
+        ommag_err[i] = np.nanmean(magx[i,:,1][magx_abs_delta_ratio[i] < 3])
     return magx, ommag, ommag_err
 
 
