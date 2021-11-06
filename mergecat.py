@@ -27,6 +27,11 @@ from tqdm import tqdm
     help="Standard deviation for none variable selection",
 )
 @click.option(
+    "--noc",
+    type=int,
+    help="Minimum number of standard candidates. Not the same as Std Stars output",
+)
+@click.option(
     "--medframe_factor",
     type=float,
     default=1.2,
@@ -44,7 +49,7 @@ from tqdm import tqdm
     type=str,
     help="Passband",
 )
-def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
+def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     """Merge the catalogs"""
     if band is None:
         catfile_list = glob("*.allmag{0}".format(phot_flag))
@@ -143,8 +148,6 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
     ic = len(istd)
 
     # Find non-variable candidate stars for differential photometry
-    kstd1 = list()
-    kstd2 = list()
     sigm = np.zeros((ic, ic)) * np.nan
     for k1 in range(ic):
         j1 = istd[k1]
@@ -157,6 +160,17 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
             sdm = np.nanmean(dm)  # Average magnitude difference
             sig = np.nansum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
             sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
+
+    if noc is not None:
+        sigm_flat = sigm.reshape(-1)
+        if len(sigm_flat[sigm_flat < sdev]) < noc:
+            print("Less than {1} standard candidates are selected with sdev: {0:.3f}!".format(sdev, noc))
+            sdev = np.nanpercentile(sigm_flat, noc * 100 / len(sigm_flat[~np.isnan(sigm_flat)]))
+            print("Change sdev to {0:.3f}".format(sdev))
+    kstd1 = list()
+    kstd2 = list()
+    for k1 in range(ic):
+        for k2 in range(k1 + 1, ic - 1):
             if sigm[k1, k2] < sdev:
                 kstd1.append(k1)
                 kstd2.append(k2)
@@ -170,6 +184,8 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
                 ncs.append(istd[i])
                 break
     print("# Std Stars: {0:d}".format(len(ncs)))
+    if len(ncs) < 10:
+        print("The number of standard stars are too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option")
 
     with open("stdstar.dat", "w") as f:
         f.write(

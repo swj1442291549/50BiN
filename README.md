@@ -40,7 +40,7 @@ A reference frame, which will be used to match other frames, is selected based o
 
 Once the reference frame is decided, each star in all other frames is matched by its coordinates. This is controlled by `dmatch` (default: 1.0 arcsec), setting the maximum matching distance. 
 
-The non-variable candidates are selected if their variance of magnitude difference (`std(m1-m2)`) is smaller than `sdev` (default: 0.006 mag).
+The non-variable candidates are selected if their variance of magnitude difference (`std(m1-m2)`) is smaller than `sdev` (default: 0.006 mag). If there are too few standard stars, an option of `noc` is provided to ensure there are adequate number of standard candidates. This value is not exact the same as the final output of standard stars number.
 
 ```
 Usage: mergecat.py [OPTIONS]
@@ -51,9 +51,12 @@ Options:
                            PSF
   --dmatch FLOAT           Position matching distance in arcsec
   --sdev FLOAT             Standard deviation for none variable selection
+  --noc INTEGER            Minimum number of standard candidates. Not the same
+                           as Std Stars output
   --medframe_factor FLOAT  A factor on average star number in a frame for
                            reference frame selection
   --obs_flag TEXT          Observatory flag. 'd': Delingha; 'l': Lenghu
+  -b, --band TEXT          Passband
   --help                   Show this message and exit.
 ```
 
