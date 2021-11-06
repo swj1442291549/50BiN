@@ -225,6 +225,13 @@ def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, 
         warnings.simplefilter("ignore", category=RuntimeWarning)
         ncs_magmatch_delta_mean = np.nanmean(ncs_magmatch_delta, axis=0)
         magx[:, :, 0] = np.subtract(magmatch[:, :, 0], ncs_magmatch_delta_mean)
+    ommag, ommag_err = estimate_ommag(magx, nstar)
+    return magx, ommag, ommag_err
+
+
+def estimate_ommag(magx, nstar):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
         magx_mean = np.nanmean(magx[:, :, 0], axis=1)
         magx_std = np.nanstd(magx[:, :, 0], axis=1, ddof=3)
         magx_delta = np.subtract(magx[:, :, 0].T, magx_mean).T
@@ -235,7 +242,7 @@ def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, 
             sel = magx_abs_delta_ratio[i] < 3
             ommag[i] = np.nanmean(magx[i, :, 0][sel])
             ommag_err[i] = np.nanmean(magx[i, :, 1][sel])
-    return magx, ommag, ommag_err
+    return ommag, ommag_err
 
 
 def fit_airmass_delta(mag_delta_date):
