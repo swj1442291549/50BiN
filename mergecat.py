@@ -77,7 +77,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
         len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list
     ]
     ndate = len(mjd_date_list)
-    print("Read {0:d} frames of {1:d} nights".format(nframe, ndate))
+    print("Read {0:d} {2} frames of {1:d} nights".format(nframe, ndate, band))
 
     # Calculate airmass
     mountain = read_obs_location(obs_flag)
@@ -96,6 +96,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
     # Use medframe as a reference, looking for each stars in all other frames by matching coordinates
     apmagmatch = np.zeros((nstar, nframe, 2)) * np.nan
     psfmagmatch = np.zeros((nstar, nframe, 2)) * np.nan
+    posmatch = np.zeros((nstar, nframe, 2)) * np.nan
     nomatch = np.zeros(nstar).astype(int)
     print("Matching stars ... ")
     for j in tqdm(range(nstar)):
@@ -112,6 +113,8 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
                     i = np.argmax(sep < dmatch / 3600)
                     apmagmatch[j, k, :] = cat[i, 11:13]
                     psfmagmatch[j, k, :] = cat[i, 7:9]
+                    posmatch[j, k, 0] = cat[i, 3]
+                    posmatch[j, k, 1] = cat[i, 5]
 
             else:
                 cat = cat_list[k]
@@ -119,6 +122,8 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
                 apmagmatch[j, k, 1] = cat[j, 12]
                 psfmagmatch[j, k, 0] = cat[j, 7]
                 psfmagmatch[j, k, 1] = cat[j, 8]
+                posmatch[j, k, 0] = cat[j, 3]
+                posmatch[j, k, 1] = cat[j, 5]
             if not match_flag:
                 nomatch[j] += 1
 
@@ -210,6 +215,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
         "nframe_date_list": nframe_date_list,  # number of frames in each date
         "mjd_date_list": mjd_date_list,  # MJD of each date
         "ncs": ncs,  # index of standard stars
+        "posmatch": posmatch,  # pos array, same format as magmatch (X, Y)
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
     print("Save python pickle data in {0}".format(mergecat_file_name))

@@ -47,6 +47,7 @@ def cli(file_name, magtype, noc):
         nframe_date_list,
         mjd_date_list,
         ncs,
+        posmatch,
     ) = itemgetter(
         "nframe",
         "medframe_index",
@@ -60,6 +61,7 @@ def cli(file_name, magtype, noc):
         "nframe_date_list",
         "mjd_date_list",
         "ncs",
+        "posmatch",
     )(
         mergecat_dict
     )
