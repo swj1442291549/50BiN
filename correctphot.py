@@ -269,6 +269,32 @@ def fit_airmass_delta_zeropoint(mag_delta_date):
     return popt, perr, bad_frame_index
 
 
+def least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs):
+    magx = np.copy(magmatch)
+    for i in tqdm(range(nframe)):
+        magx[:, i, 0] = np.nan
+        try:
+            dat = pd.DataFrame({
+                "smag": smag_ncs,
+                "mag": magmatch[ncs, i, 0],
+                # "x": posmatch[ncs, i, 0],
+                # "y": posmatch[ncs, i, 1],
+                })
+            est = smf.ols("smag ~ mag", data=dat).fit()
+        except:
+            continue
+        else:
+            dat = pd.DataFrame({
+                "mag": magmatch[:, i, 0],
+                # "x": posmatch[:, i, 0],
+                # "y": posmatch[:, i, 1],
+                })
+            smag_pred = est.predict(dat)
+            magx[:, i, 0] = smag_pred
+    ommag, ommag_err = estimate_ommag(magx, nstar)
+    return magx, ommag, ommag_err
+
+
 def get_bestframe_index(ndate, magmatch, ncs, nframe_date_list):
     bestframe_index_date_list = list()
     for i in range(ndate):
