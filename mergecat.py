@@ -55,6 +55,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
         catfile_list = glob("*.allmag{0}".format(phot_flag))
     else:
         catfile_list = glob("*{1}[0-9][0-9][0-9][0-9].allmag{0}".format(phot_flag, band))
+    catfile_list.sort()
 
     # check there is only one filter data
     filter_list = [catfile[-13] for catfile in catfile_list]
