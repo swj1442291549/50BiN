@@ -1,4 +1,7 @@
 import pickle
+from tqdm import tqdm
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
 from pathlib import Path
 import pandas as pd
 from glob import glob
@@ -72,6 +75,7 @@ def cli(file_name, magtype, noc):
 
     print("Total number of stars: {0:d}".format(nstar))
 
+    # TODO may change how we select standard stars
     if len(ncs) < noc:
         print("too few std stars selected")
         return
@@ -82,9 +86,12 @@ def cli(file_name, magtype, noc):
     else:
         magmatch = psfmagmatch
 
-    magx, ommag, ommag_err = differential_correct_phot(
-        magmatch, nstar, frame_info, ncs, medframe_index, nframe
-    )
+    # magx, ommag, ommag_err = differential_correct_phot(
+    #     magmatch, nstar, frame_info, ncs, medframe_index, nframe
+    # )
+
+    smag_ncs = magmatch[ncs, medframe_index, 0]
+    magx, ommag, ommag_err = least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs)
 
     # bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
     # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
