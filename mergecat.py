@@ -38,18 +38,33 @@ from tqdm import tqdm
     default="d",
     help="Observatory flag. 'd': Delingha; 'l': Lenghu",
 )
-def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag):
+@click.option(
+    "-b",
+    "--band",
+    type=str,
+    help="Passband",
+)
+def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band):
     """Merge the catalogs"""
-    #TODO improve find + filter check
-    catfile_list = glob("*.allmag{0}".format(phot_flag))
-    nframe = len(catfile_list)
+    if band is None:
+        catfile_list = glob("*.allmag{0}".format(phot_flag))
+    else:
+        catfile_list = glob("*{1}[0-9][0-9][0-9][0-9].allmag{0}".format(phot_flag, band))
+
+    # check there is only one filter data
+    filter_list = [catfile[-13] for catfile in catfile_list]
+    nfilter = len(set(filter_list))
+    if nfilter != 1:
+        print("The folder contains data of {0} bands: {1}! Please specify one band!".format(nfilter, ", ".join(set(filter_list))))
+        return
+    band = filter_list[0]
 
     # Reading out all individual catalogs into cat_list, info_dict_list, coord_list
     cat_list = list()
     info_dict_list = list()
     coord_list = list()
     print("Reading data ... ")
-    for k in tqdm(range(nframe)):
+    for k in tqdm(range(len(catfile_list))):
         cat, info_dict = read_cat_and_info(catfile_list[k])
         if cat is not None:
             cat_list.append(cat)
