@@ -9,7 +9,7 @@ import numpy as np
 
 
 @click.command()
-@click.option("-f" ,"--file_name", type=str, help="Input pkl file name")
+@click.option("-f", "--file_name", type=str, help="Input pkl file name")
 @click.option(
     "-i", "--init_star_index", type=int, default=0, help="Index of star to plot"
 )
@@ -19,13 +19,17 @@ def cli(file_name, init_star_index):
     if file_name is None:
         candidate_file_list = glob("*gcat_cal.pkl")
         if len(candidate_file_list) == 1:
-            file_name= candidate_file_list[0]
+            file_name = candidate_file_list[0]
             print("Find {0}".format(file_name))
         elif len(candidate_file_list) == 0:
-            print("No *gcat_cal.pkl file is found! Please run command `correctphot` in advance!")
+            print(
+                "No *gcat_cal.pkl file is found! Please run command `correctphot` in advance!"
+            )
             return
         else:
-            print("More than one *gcat_cal.pkl is found! Please specify which file to use by `plotcurve -f FILE_NAME`")
+            print(
+                "More than one *gcat_cal.pkl is found! Please specify which file to use by `plotcurve -f FILE_NAME`"
+            )
             return
     if not Path(file_name).is_file():
         print("File not found!")
@@ -78,16 +82,10 @@ def save_single_phot(file_name, magtype, star_index, amjd, coord, magmatch, magx
     """
     ra_str, dec_str = coord_to_str(coord[star_index][0], coord[star_index][1])
     orig_file_name = "{0}.{1}{3}S{2:0>4d}.orig".format(
-        file_name.split(".")[0],
-        file_name.split(".")[1][0],
-        star_index,
-        magtype,
+        file_name.split(".")[0], file_name.split(".")[1][0], star_index, magtype,
     )
     mag_file_name = "{0}.{1}{3}S{2:0>4d}.dat".format(
-        file_name.split(".")[0],
-        file_name.split(".")[1][0],
-        star_index,
-        magtype,
+        file_name.split(".")[0], file_name.split(".")[1][0], star_index, magtype,
     )
     print(
         "Save photometry data of #{0:3d} to {1}, {2}".format(
@@ -213,7 +211,6 @@ def plot_lc(file_name, init_star_index):
     else:
         magmatch = psfmagmatch
 
-
     global star_index
     global mday_flag
     global mjd_index
@@ -224,7 +221,6 @@ def plot_lc(file_name, init_star_index):
     mday_flag = False
     airmass_flag = False
     mag_surronding = 0.02
-
 
     def on_key(event):
         global star_index
@@ -240,7 +236,12 @@ def plot_lc(file_name, init_star_index):
             if mday_flag:
                 mjd_index += 1
                 mjd_index = mjd_index % ndate
-                plt.text(text_x, text_y, "Day: ({0}/{1})".format(mjd_index + 1, ndate), transform=plt.gca().transAxes)
+                plt.text(
+                    text_x,
+                    text_y,
+                    "Day: ({0}/{1})".format(mjd_index + 1, ndate),
+                    transform=plt.gca().transAxes,
+                )
             else:
                 star_index += 1
                 print(
@@ -254,7 +255,12 @@ def plot_lc(file_name, init_star_index):
             if mday_flag:
                 mjd_index -= 1
                 mjd_index = mjd_index % ndate
-                plt.text(text_x, text_y, "Day: ({0}/{1})".format(mjd_index + 1, ndate), transform=plt.gca().transAxes)
+                plt.text(
+                    text_x,
+                    text_y,
+                    "Day: ({0}/{1})".format(mjd_index + 1, ndate),
+                    transform=plt.gca().transAxes,
+                )
             else:
                 star_index -= 1
                 print(
@@ -295,17 +301,34 @@ def plot_lc(file_name, init_star_index):
                 plt.text(text_x, text_y, "Light Curve", transform=plt.gca().transAxes)
             else:
                 plt.text(text_x, text_y, "AIRMASS", transform=plt.gca().transAxes)
-        elif event.key == 'r':
+        elif event.key == "r":
             mag_surronding = 0.02
             plt.text(text_x, text_y, "Reset", transform=plt.gca().transAxes)
         else:
             return
 
-        inner_plot(frame_info, magmatch, magx, star_index, mday_flag, mjd_index, airmass_flag, mag_surronding)
+        inner_plot(
+            frame_info,
+            magmatch,
+            magx,
+            star_index,
+            mday_flag,
+            mjd_index,
+            airmass_flag,
+            mag_surronding,
+        )
         plt.draw()
 
-
-    def inner_plot(frame_info, magmatch, magx, star_index, mday_flag, mjd_index, airmass_flag, mag_surronding):
+    def inner_plot(
+        frame_info,
+        magmatch,
+        magx,
+        star_index,
+        mday_flag,
+        mjd_index,
+        airmass_flag,
+        mag_surronding,
+    ):
         lc = prepare_lc_df(star_index, frame_info, magmatch, magx)
         if not airmass_flag:
             if mjd_index != -1:
@@ -323,7 +346,10 @@ def plot_lc(file_name, init_star_index):
                 plt.hlines(
                     ommag[star_index], min(x), max(x), linestyles="dashed", colors="red"
                 )
-                plt.ylim(np.percentile(y2, 3) - mag_surronding, np.percentile(y2, 97) + mag_surronding)
+                plt.ylim(
+                    np.percentile(y2, 3) - mag_surronding,
+                    np.percentile(y2, 97) + mag_surronding,
+                )
                 plt.gca().invert_yaxis()
         else:
             if mjd_index != -1:
@@ -340,23 +366,43 @@ def plot_lc(file_name, init_star_index):
                     scatter = plt.scatter(x, y1, s=4, c=lc.mjd, cmap="rainbow")
                     plt.legend(*scatter.legend_elements())
                 else:
-                    plt.scatter(x, y1, s=4, color=cmap((mjd_date_list[mjd_index] - min(mjd_date_list)) / (max(mjd_date_list) - min(mjd_date_list))))
-                    
-                plt.ylim(np.percentile(y2, 3) - mag_surronding, np.percentile(y2, 97) + mag_surronding)
+                    plt.scatter(
+                        x,
+                        y1,
+                        s=4,
+                        color=cmap(
+                            (mjd_date_list[mjd_index] - min(mjd_date_list))
+                            / (max(mjd_date_list) - min(mjd_date_list))
+                        ),
+                    )
+
+                plt.ylim(
+                    np.percentile(y2, 3) - mag_surronding,
+                    np.percentile(y2, 97) + mag_surronding,
+                )
                 plt.gca().invert_yaxis()
         ylabel = "Magnitude"
         title = "#: {0:4d}  M = {1:.2f}  RA: {3}  DEC: {4}  MJD+{2:d}".format(
             star_index,
             ommag[star_index],
             int(min(lc.amjd, default=0)),
-            *coord_to_str(coord[star_index][0], coord[star_index][1])
+            *coord_to_str(coord[star_index][0], coord[star_index][1]),
         )
         plt.title(title)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
 
     fig, ax = plt.subplots(1, 1)
-    inner_plot(frame_info, magmatch, magx, star_index, mday_flag, mjd_index, airmass_flag, mag_surronding)
+    inner_plot(
+        frame_info,
+        magmatch,
+        magx,
+        star_index,
+        mday_flag,
+        mjd_index,
+        airmass_flag,
+        mag_surronding,
+    )
     print(
         "#: {0:4d}  M = {1:5.2f}  RA: {2}  DEC: {3}".format(
             star_index,

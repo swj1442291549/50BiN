@@ -44,24 +44,27 @@ from tqdm import tqdm
     help="Observatory flag. 'd': Delingha; 'l': Lenghu",
 )
 @click.option(
-    "-b",
-    "--band",
-    type=str,
-    help="Passband",
+    "-b", "--band", type=str, help="Passband",
 )
 def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     """Merge the catalogs"""
     if band is None:
         catfile_list = glob("*.allmag{0}".format(phot_flag))
     else:
-        catfile_list = glob("*{1}[0-9][0-9][0-9][0-9].allmag{0}".format(phot_flag, band))
+        catfile_list = glob(
+            "*{1}[0-9][0-9][0-9][0-9].allmag{0}".format(phot_flag, band)
+        )
     catfile_list.sort()
 
     # check there is only one filter data
     filter_list = [catfile[-13] for catfile in catfile_list]
     nfilter = len(set(filter_list))
     if nfilter != 1:
-        print("The folder contains data of {0} bands: {1}! Please specify one band!".format(nfilter, ", ".join(set(filter_list))))
+        print(
+            "The folder contains data of {0} bands: {1}! Please specify one band!".format(
+                nfilter, ", ".join(set(filter_list))
+            )
+        )
         return
     band = filter_list[0]
 
@@ -165,8 +168,14 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     if noc is not None:
         sigm_flat = sigm.reshape(-1)
         if len(sigm_flat[sigm_flat < sdev]) < noc:
-            print("Less than {1} standard candidates are selected with sdev: {0:.3f}!".format(sdev, noc))
-            sdev = np.nanpercentile(sigm_flat, noc * 100 / len(sigm_flat[~np.isnan(sigm_flat)]))
+            print(
+                "Less than {1} standard candidates are selected with sdev: {0:.3f}!".format(
+                    sdev, noc
+                )
+            )
+            sdev = np.nanpercentile(
+                sigm_flat, noc * 100 / len(sigm_flat[~np.isnan(sigm_flat)])
+            )
             print("Change sdev to {0:.3f}".format(sdev))
     kstd1 = list()
     kstd2 = list()
@@ -186,7 +195,9 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
                 break
     print("# Std Stars: {0:d}".format(len(ncs)))
     if len(ncs) < 10:
-        print("The number of standard stars are too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option")
+        print(
+            "The number of standard stars are too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option"
+        )
 
     with open("stdstar.dat", "w") as f:
         f.write(

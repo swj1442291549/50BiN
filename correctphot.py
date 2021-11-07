@@ -12,26 +12,32 @@ import warnings
 
 
 @click.command()
-@click.option("-f" ,"--file_name", type=str, help="Input pkl file name")
+@click.option("-f", "--file_name", type=str, help="Input pkl file name")
 @click.option(
     "--magtype", type=str, default="a", help="magnitude type. a: aperture; p: psf"
 )
 @click.option("--noc", type=int, default=5, help="Number of selected standard stars")
-@click.option("--method", type=str, help="Method of correcting photometry. (Empty, 'xy')")
+@click.option(
+    "--method", type=str, help="Method of correcting photometry. (Empty, 'xy')"
+)
 def cli(file_name, magtype, noc, method):
     """Calibrate the intrumental photometry"""
 
     if file_name is None:
         candidate_file_list = glob("*gcat.pkl")
         if len(candidate_file_list) == 1:
-            file_name= candidate_file_list[0]
+            file_name = candidate_file_list[0]
             print("File: {0}".format(file_name))
         elif len(candidate_file_list) == 0:
-            print("No *gcat.pkl file is found! Please run command `mergecat` in advance!")
+            print(
+                "No *gcat.pkl file is found! Please run command `mergecat` in advance!"
+            )
             return
         else:
-            print("More than one *gcat.pkl is found! Please specify which file to use by `correctphot -f FILE_NAME`")
-            return 
+            print(
+                "More than one *gcat.pkl is found! Please specify which file to use by `correctphot -f FILE_NAME`"
+            )
+            return
     if not Path(file_name).is_file():
         print("File not found!")
         return
@@ -89,19 +95,20 @@ def cli(file_name, magtype, noc, method):
         magmatch = psfmagmatch
     print("Magtype: {0}".format("Aperture" if magtype == "a" else "PSF"))
 
-
-    
     if method is not None:
         if noc < 10:
-            print("A mininum number of 10 standard stars is required for least-squares fitting")
+            print(
+                "A mininum number of 10 standard stars is required for least-squares fitting"
+            )
             return
         smag_ncs = magmatch[ncs, medframe_index, 0]
-        magx, ommag, ommag_err = least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method)
+        magx, ommag, ommag_err = least_square_correct_phot(
+            magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method
+        )
     else:
         magx, ommag, ommag_err = differential_correct_phot(
             magmatch, nstar, frame_info, ncs, medframe_index, nframe
         )
-
 
     # bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
     # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
@@ -115,7 +122,7 @@ def cli(file_name, magtype, noc, method):
 
     # Save average magnitude for each star
     mmag_catfile_name = "{0}.{1}{2}gcat_mmag".format(
-        file_name.split(".")[0],file_name.split(".")[1][0], magtype
+        file_name.split(".")[0], file_name.split(".")[1][0], magtype
     )
     with open(mmag_catfile_name, "w") as f:
         for i in range(nstar):
@@ -127,7 +134,7 @@ def cli(file_name, magtype, noc, method):
 
     # Save final catalog
     final_catfile_name = "{0}.{1}{2}gcat_cal.pkl".format(
-        file_name.split(".")[0],file_name.split(".")[1][0], magtype
+        file_name.split(".")[0], file_name.split(".")[1][0], magtype
     )
 
     mergecat_dict = {
@@ -293,16 +300,20 @@ def fit_airmass_delta_zeropoint(mag_delta_date):
     return popt, perr, bad_frame_index
 
 
-def least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method):
+def least_square_correct_phot(
+    magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method
+):
     magx = np.copy(magmatch)
     for i in tqdm(range(nframe)):
         magx[:, i, 0] = np.nan
         try:
-            dat = pd.DataFrame({
-                "dmag": smag_ncs - magmatch[ncs, i, 0],
-                "x": posmatch[ncs, i, 0],
-                "y": posmatch[ncs, i, 1],
-                })
+            dat = pd.DataFrame(
+                {
+                    "dmag": smag_ncs - magmatch[ncs, i, 0],
+                    "x": posmatch[ncs, i, 0],
+                    "y": posmatch[ncs, i, 1],
+                }
+            )
             if method == "xy":
                 est = smf.ols("dmag ~ x + y", data=dat).fit()
             else:
@@ -310,11 +321,13 @@ def least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch
         except:
             continue
         else:
-            dat = pd.DataFrame({
-                "mag": magmatch[:, i, 0],
-                "x": posmatch[:, i, 0],
-                "y": posmatch[:, i, 1],
-                })
+            dat = pd.DataFrame(
+                {
+                    "mag": magmatch[:, i, 0],
+                    "x": posmatch[:, i, 0],
+                    "y": posmatch[:, i, 1],
+                }
+            )
             dmag_pred = est.predict(dat)
             magx[:, i, 0] = dmag_pred + magmatch[:, i, 0]
     ommag, ommag_err = estimate_ommag(magx, nstar)
