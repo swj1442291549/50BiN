@@ -44,29 +44,27 @@ from tqdm import tqdm
     help="Observatory flag. 'd': Delingha; 'l': Lenghu",
 )
 @click.option(
-    "-b", "--band", type=str, help="Passband",
+    "-b", "--band", type=str, help="Passband. If to use more than one bands, list them here without space in between e.g., BV",
 )
 def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     """Merge the catalogs"""
     if band is None:
         catfile_list = glob("*.allmag{0}".format(phot_flag))
+        # check there is only one filter data
+        filter_list = [catfile[-13] for catfile in catfile_list]
+        nfilter = len(set(filter_list))
+        if nfilter != 1:
+            print(
+                "WARNING: The folder contains data of {0} bands: {1}! Please specify through the option `--band`!".format(
+                    nfilter, ", ".join(set(filter_list))
+                )
+            )
+            return
     else:
         catfile_list = glob(
-            "*{1}[0-9][0-9][0-9][0-9].allmag{0}".format(phot_flag, band)
+            "*[{1}][0-9][0-9][0-9][0-9].allmag{0}".format(phot_flag, band)
         )
     catfile_list.sort()
-
-    # check there is only one filter data
-    filter_list = [catfile[-13] for catfile in catfile_list]
-    nfilter = len(set(filter_list))
-    if nfilter != 1:
-        print(
-            "The folder contains data of {0} bands: {1}! Please specify one band!".format(
-                nfilter, ", ".join(set(filter_list))
-            )
-        )
-        return
-    band = filter_list[0]
 
     # Reading out all individual catalogs into cat_list, info_dict_list, coord_list
     cat_list = list()
@@ -81,12 +79,15 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
             coord_list.append(cat[:, 18:20].astype(float))
     frame_info = pd.DataFrame(info_dict_list)
     nframe = len(frame_info)
+    nband = len(set(frame_info.band))
     mjd_date_list = np.sort(list(set(frame_info.mjd)))
     nframe_date_list = [
         len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list
     ]
     ndate = len(mjd_date_list)
-    print("Read {0:d} {2} frames of {1:d} nights".format(nframe, ndate, band))
+    for i in range(len(band)):
+        frame_info_sel = frame_info[frame_info.band == band[i]]
+        print("Read {0:d} {2} frames of {1:d} nights".format(len(frame_info[frame_info.band == band[i]]), len(set(frame_info_sel.mjd)), band[i]))
 
     # Calculate airmass
     mountain = read_obs_location(obs_flag)
@@ -140,6 +141,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
                 nomatch[j] += 1
 
     # Define standard candidate stars for differential photometry
+    print("Finding standard stars ...")
     std = np.arange(nstar)
     nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
     calib_flag = True
@@ -199,7 +201,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     print("# Std Stars: {0:d}".format(len(ncs)))
     if len(ncs) < 10:
         print(
-            "The number of standard stars are too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option"
+            "WARNING: The number of standard stars are too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option"
         )
 
     with open("stdstar.dat", "w") as f:
@@ -223,12 +225,12 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     if ndate > 1:
         mergecat_file_name = "{0}ALL_{1}.{2}gcat.pkl".format(
             info_dict_list[0]["file_name"][1:6],
-            info_dict_list[0]["file_name"][12:13],
+            band,
             phot_flag,
         )
     else:
-        mergecat_file_name = "{0}.{1}gcat.pkl".format(
-            info_dict_list[0]["file_name"][1:13], phot_flag
+        mergecat_file_name = "{0}{1}.{2}gcat.pkl".format(
+            info_dict_list[0]["file_name"][1:12], band, phot_flag
         )
 
     mergecat_dict = {
@@ -247,6 +249,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
         "mjd_date_list": mjd_date_list,  # MJD of each date
         "ncs": ncs,  # index of standard stars
         "posmatch": posmatch,  # pos array, same format as magmatch (X, Y)
+        "nband": nband, # number of bands
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
     print("Save python pickle data in {0}".format(mergecat_file_name))
@@ -433,3 +436,47 @@ def find_medframe_index_airmass(frame_info):
 
 if __name__ == "__main__":
     cli()
+    # band = "BV"
+    # phot_flag = 0
+
+
+    # if band is None:
+    #     catfile_list = glob("*.allmag{0}".format(phot_flag))
+    #     # check there is only one filter data
+    #     filter_list = [catfile[-13] for catfile in catfile_list]
+    #     nfilter = len(set(filter_list))
+    #     if nfilter != 1:
+    #         print(
+    #             "The folder contains data of {0} bands: {1}! Please specify through the option `--band`!".format(
+    #                 nfilter, ", ".join(set(filter_list))
+    #             )
+    #         )
+    # else:
+    #     catfile_list = glob(
+    #         "*[{1}][0-9][0-9][0-9][0-9].allmag{0}".format(phot_flag, band)
+    #     )
+    # catfile_list.sort()
+
+    # # Reading out all individual catalogs into cat_list, info_dict_list, coord_list
+    # cat_list = list()
+    # info_dict_list = list()
+    # coord_list = list()
+    # print("Reading data ... ")
+    # for k in tqdm(range(len(catfile_list))):
+    #     cat, info_dict = read_cat_and_info(catfile_list[k])
+    #     if cat is not None:
+    #         cat_list.append(cat)
+    #         info_dict_list.append(info_dict)
+    #         coord_list.append(cat[:, 18:20].astype(float))
+    # frame_info = pd.DataFrame(info_dict_list)
+    # nframe = len(frame_info)
+    # mjd_date_list = np.sort(list(set(frame_info.mjd)))
+    # nframe_date_list = [
+    #     len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list
+    # ]
+    # ndate = len(mjd_date_list)
+
+    # for i in range(len(band)):
+    #     frame_info_sel = frame_info[frame_info.band == band[i]]
+    #     print("Read {0:d} {2} frames of {1:d} nights".format(len(frame_info[frame_info.band == band[i]]), len(set(frame_info_sel.mjd)), band[i]))
+
