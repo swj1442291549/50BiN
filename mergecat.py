@@ -367,6 +367,7 @@ def read_cat_and_info(file_name):
         "fwhm": fwhm,
         "aperture": aperture,
         "nstar": nstar,
+        "band": file_name[-13]
     }
     return cat, info_dict
 
