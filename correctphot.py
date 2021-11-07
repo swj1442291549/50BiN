@@ -17,14 +17,15 @@ import warnings
     "--magtype", type=str, default="a", help="magnitude type. a: aperture; p: psf"
 )
 @click.option("--noc", type=int, default=5, help="Number of selected standard stars")
-def cli(file_name, magtype, noc):
+@click.option("--method", type=str, help="Method of correcting photometry. (Empty, 'xy')")
+def cli(file_name, magtype, noc, method):
     """Calibrate the intrumental photometry"""
 
     if file_name is None:
         candidate_file_list = glob("*gcat.pkl")
         if len(candidate_file_list) == 1:
             file_name= candidate_file_list[0]
-            print("Find {0}".format(file_name))
+            print("File: {0}".format(file_name))
         elif len(candidate_file_list) == 0:
             print("No *gcat.pkl file is found! Please run command `mergecat` in advance!")
             return
@@ -73,25 +74,34 @@ def cli(file_name, magtype, noc):
         amjd=frame_info.mjd + frame_info.mid_time / 24 - 0.5
     )  # convert observing time to modified julian day AMJD(1-nf)
 
-    print("Total number of stars: {0:d}".format(nstar))
+    print("# Star: {0:d}".format(nstar))
 
     # TODO may change how we select standard stars
     if len(ncs) < noc:
         print("too few std stars selected")
         return
     ncs = ncs[:noc]
+    print("# Std Stars: {0:d}".format(len(ncs)))
 
     if magtype == "a":
         magmatch = apmagmatch
     else:
         magmatch = psfmagmatch
+    print("Magtype: {0}".format("Aperture" if magtype == "a" else "PSF"))
 
-    # magx, ommag, ommag_err = differential_correct_phot(
-    #     magmatch, nstar, frame_info, ncs, medframe_index, nframe
-    # )
 
-    smag_ncs = magmatch[ncs, medframe_index, 0]
-    magx, ommag, ommag_err = least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs)
+    
+    if method is not None:
+        if noc < 10:
+            print("A mininum number of 10 standard stars is required for least-squares fitting")
+            return
+        smag_ncs = magmatch[ncs, medframe_index, 0]
+        magx, ommag, ommag_err = least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method)
+    else:
+        magx, ommag, ommag_err = differential_correct_phot(
+            magmatch, nstar, frame_info, ncs, medframe_index, nframe
+        )
+
 
     # bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
     # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
