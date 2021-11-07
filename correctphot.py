@@ -76,9 +76,6 @@ def cli(file_name, magtype, noc, method):
         mergecat_dict
     )
 
-    frame_info = frame_info.assign(
-        amjd=frame_info.mjd + frame_info.mid_time / 24 - 0.5
-    )  # convert observing time to modified julian day AMJD(1-nf)
 
     print("# Star: {0:d}".format(nstar))
 

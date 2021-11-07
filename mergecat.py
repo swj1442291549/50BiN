@@ -97,6 +97,9 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     target_altaz = target.transform_to(AltAz(obstime=time, location=mountain))
     target_airmass = target_altaz.secz
     frame_info = frame_info.assign(airmass=target_airmass)
+    frame_info = frame_info.assign(
+        amjd=frame_info.mjd + frame_info.mid_time / 24 - 0.5
+    )  # convert observing time to modified julian day AMJD(1-nf)
 
     medframe_index = find_medframe_index(frame_info, medframe_factor)
     nstar = frame_info.loc[medframe_index]["nstar"]
