@@ -289,12 +289,11 @@ def least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch
         magx[:, i, 0] = np.nan
         try:
             dat = pd.DataFrame({
-                "smag": smag_ncs,
-                "mag": magmatch[ncs, i, 0],
+                "dmag": smag_ncs - magmatch[ncs, i, 0],
                 # "x": posmatch[ncs, i, 0],
                 # "y": posmatch[ncs, i, 1],
                 })
-            est = smf.ols("smag ~ mag", data=dat).fit()
+            est = smf.ols("dmag ~ 1", data=dat).fit()
         except:
             continue
         else:
@@ -303,8 +302,8 @@ def least_square_correct_phot(magmatch, nstar, frame_info, ncs, nframe, posmatch
                 # "x": posmatch[:, i, 0],
                 # "y": posmatch[:, i, 1],
                 })
-            smag_pred = est.predict(dat)
-            magx[:, i, 0] = smag_pred
+            dmag_pred = est.predict(dat)
+            magx[:, i, 0] = dmag_pred + magmatch[:, i, 0]
     ommag, ommag_err = estimate_ommag(magx, nstar)
     return magx, ommag, ommag_err
 
