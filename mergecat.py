@@ -201,28 +201,32 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
             if i == kstd2[j]:
                 ncs.append(istd[i])
                 break
+
     print("# Std Stars: {0:d}".format(len(ncs)))
     if len(ncs) < 10:
         print(
             "WARNING: The number of standard stars are too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option"
         )
 
-    with open("stdstar.dat", "w") as f:
+    stdstar_file_name = "stdstar_{0}.dat".format(band)
+    with open(stdstar_file_name, "w") as f:
         f.write(
             "             ra             dec      apmag  apmag_err     psfmag psfmag_err\n"
         )
         for j in range(len(ncs)):
+            i = ncs[j]
             f.write(
                 "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
-                    coord_list[medframe_index][j, 0],
-                    coord_list[medframe_index][j, 1],
-                    apmagmatch[j, medframe_index, 0],
-                    apmagmatch[j, medframe_index, 1],
-                    psfmagmatch[j, medframe_index, 0],
-                    psfmagmatch[j, medframe_index, 1],
+                    coord_list[medframe_index][i, 0],
+                    coord_list[medframe_index][i, 1],
+                    apmagmatch[i, medframe_index, 0],
+                    apmagmatch[i, medframe_index, 1],
+                    psfmagmatch[i, medframe_index, 0],
+                    psfmagmatch[i, medframe_index, 1],
                 )
             )
-    print("Save standard stars info in {0}".format("stdstar.dat"))
+    print("Save standard stars info in {0}".format(stdstar_file_name))
+    ipdb.set_trace()
 
     # Write merged uncalibrated data into a file
     if ndate > 1:
