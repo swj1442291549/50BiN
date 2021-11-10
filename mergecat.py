@@ -168,15 +168,14 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
             m1 = psfmagmatch[j1, :, 0]
             m2 = psfmagmatch[j2, :, 0]
             dm = m1 - m2  # Magnitude difference between j1 and j2
-            sig = 0
+            sig2 = 0
             for iband in band_list:
-                sig += np.nanstd(dm[frame_info.band == iband]) ** 2
-            sigm[k1, k2] = sig
+                sig2 += np.nanstd(dm[frame_info.band == iband]) ** 2
+            sigm[k1, k2] = np.sqrt(sig2)
 
     if noc is not None:
-        # TODO change
         sigm_flat = sigm.reshape(-1)
-        if len(sigm_flat[sigm_flat < sdev]) < noc:
+        if len(sigm_flat[sigm_flat < sdev * np.sqrt(nband)]) < noc:
             print(
                 "Less than {1} standard candidates are selected with sdev: {0:.3f}!".format(
                     sdev, noc
@@ -184,13 +183,13 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
             )
             sdev = np.nanpercentile(
                 sigm_flat, noc * 100 / len(sigm_flat[~np.isnan(sigm_flat)])
-            )
+            ) / np.sqrt(nband)
             print("Change sdev to {0:.3f}".format(sdev))
     kstd1 = list()
     kstd2 = list()
     for k1 in range(ic):
         for k2 in range(k1 + 1, ic - 1):
-            if sigm[k1, k2] < sdev ** 2 * nband:
+            if sigm[k1, k2] < sdev * np.sqrt(nband):
                 kstd1.append(k1)
                 kstd2.append(k2)
 
