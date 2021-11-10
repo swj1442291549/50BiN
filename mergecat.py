@@ -202,7 +202,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     print("# Std Stars: {0:d}".format(len(ncs)))
     if len(ncs) < 10:
         print(
-            "WARNING: The number of standard stars are too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option"
+            "WARNING: The number of standard stars is too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option"
         )
 
     stdstar_file_name = "stdstar_{0}.dat".format(band)
