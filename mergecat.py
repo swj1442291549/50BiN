@@ -60,6 +60,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
                 )
             )
             return
+        band = filter_list[0]
     else:
         catfile_list = glob(
             "*[{1}][0-9][0-9][0-9][0-9].allmag{0}".format(phot_flag, band)
@@ -441,7 +442,7 @@ if __name__ == "__main__":
     cli()
     # band = "BV"
     # phot_flag = 0
-
+    # obs_flag = "d"
 
     # if band is None:
     #     catfile_list = glob("*.allmag{0}".format(phot_flag))
@@ -450,7 +451,7 @@ if __name__ == "__main__":
     #     nfilter = len(set(filter_list))
     #     if nfilter != 1:
     #         print(
-    #             "The folder contains data of {0} bands: {1}! Please specify through the option `--band`!".format(
+    #             "WARNING: The folder contains data of {0} bands: {1}! Please specify through the option `--band`!".format(
     #                 nfilter, ", ".join(set(filter_list))
     #             )
     #         )
@@ -473,13 +474,129 @@ if __name__ == "__main__":
     #         coord_list.append(cat[:, 18:20].astype(float))
     # frame_info = pd.DataFrame(info_dict_list)
     # nframe = len(frame_info)
+    # nband = len(set(frame_info.band))
     # mjd_date_list = np.sort(list(set(frame_info.mjd)))
     # nframe_date_list = [
     #     len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list
     # ]
     # ndate = len(mjd_date_list)
-
+    # band_list = list()
     # for i in range(len(band)):
     #     frame_info_sel = frame_info[frame_info.band == band[i]]
     #     print("Read {0:d} {2} frames of {1:d} nights".format(len(frame_info[frame_info.band == band[i]]), len(set(frame_info_sel.mjd)), band[i]))
+    #     band_list.append(band[i])
 
+    # # Calculate airmass
+    # mountain = read_obs_location(obs_flag)
+    # time = Time(frame_info["start_time"])  # should use mid time
+    # target = SkyCoord(
+    #     np.mean(coord_list[0][:, 0]), np.mean(coord_list[0][:, 1]), unit="deg",
+    # )
+    # target_altaz = target.transform_to(AltAz(obstime=time, location=mountain))
+    # target_airmass = target_altaz.secz
+    # frame_info = frame_info.assign(airmass=target_airmass)
+    # frame_info = frame_info.assign(
+    #     amjd=frame_info.mjd + frame_info.mid_time / 24 - 0.5
+    # )  # convert observing time to modified julian day AMJD(1-nf)
+
+    # medframe_index = find_medframe_index(frame_info, medframe_factor)
+    # nstar = frame_info.loc[medframe_index]["nstar"]
+
+    # # Merge the catalogs
+    # # Use medframe as a reference, looking for each stars in all other frames by matching coordinates
+    # apmagmatch = np.zeros((nstar, nframe, 2)) * np.nan
+    # psfmagmatch = np.zeros((nstar, nframe, 2)) * np.nan
+    # posmatch = np.zeros((nstar, nframe, 2)) * np.nan
+    # nomatch = np.zeros(nstar).astype(int)
+    # print("Matching stars ... ")
+    # for j in tqdm(range(nstar)):
+    #     ra0, dec0 = coord_list[medframe_index][j]
+    #     for k in range(nframe):
+    #         match_flag = False
+    #         if k != medframe_index:
+    #             sep = np.sqrt(
+    #                 (ra0 - coord_list[k][:, 0]) ** 2 + (dec0 - coord_list[k][:, 1]) ** 2
+    #             )
+    #             if np.min(sep) < dmatch / 3600:
+    #                 match_flag = True
+    #                 cat = cat_list[k]
+    #                 i = np.argmax(sep < dmatch / 3600)
+    #                 apmagmatch[j, k, :] = cat[i, 11:13]
+    #                 psfmagmatch[j, k, :] = cat[i, 7:9]
+    #                 posmatch[j, k, 0] = cat[i, 3]
+    #                 posmatch[j, k, 1] = cat[i, 5]
+
+    #         else:
+    #             cat = cat_list[k]
+    #             apmagmatch[j, k, 0] = cat[j, 11]
+    #             apmagmatch[j, k, 1] = cat[j, 12]
+    #             psfmagmatch[j, k, 0] = cat[j, 7]
+    #             psfmagmatch[j, k, 1] = cat[j, 8]
+    #             posmatch[j, k, 0] = cat[j, 3]
+    #             posmatch[j, k, 1] = cat[j, 5]
+    #         if not match_flag:
+    #             nomatch[j] += 1
+
+    # # Define standard candidate stars for differential photometry
+    # print("Finding standard stars ...")
+    # std = np.arange(nstar)
+    # nmlim = max(int(nframe * 0.15), 20)  # at most mising in nmlim number of frames
+    # calib_flag = True
+    # istd = list()
+    # while calib_flag:
+    #     istd = std[(nomatch < nmlim)]
+    #     if len(istd) > int(nstar * 0.2):
+    #         calib_flag = False
+    #     else:
+    #         nmlim *= 1.1
+    #     if nmlim >= nstar:
+    #         break
+    # ic = len(istd)
+
+    # # Find non-variable candidate stars for differential photometry
+    # sigm = np.zeros((ic, ic)) * np.nan
+    # for k1 in range(ic):
+    #     j1 = istd[k1]
+    #     for k2 in range(k1 + 1, ic - 1):
+    #         j2 = istd[k2]
+    #         m1 = psfmagmatch[j1, :, 0]
+    #         m2 = psfmagmatch[j2, :, 0]
+    #         dm = m1 - m2  # Magnitude difference between j1 and j2
+    #         idm = len(dm[~np.isnan(dm)])  # Number of frame with non-nan records
+    #         sdm = np.nanmean(dm)  # Average magnitude difference
+    #         sig = np.nansum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
+    #         sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
+
+    # if noc is not None:
+    #     sigm_flat = sigm.reshape(-1)
+    #     if len(sigm_flat[sigm_flat < sdev]) < noc:
+    #         print(
+    #             "Less than {1} standard candidates are selected with sdev: {0:.3f}!".format(
+    #                 sdev, noc
+    #             )
+    #         )
+    #         sdev = np.nanpercentile(
+    #             sigm_flat, noc * 100 / len(sigm_flat[~np.isnan(sigm_flat)])
+    #         )
+    #         print("Change sdev to {0:.3f}".format(sdev))
+    # kstd1 = list()
+    # kstd2 = list()
+    # for k1 in range(ic):
+    #     for k2 in range(k1 + 1, ic - 1):
+    #         if sigm[k1, k2] < sdev:
+    #             kstd1.append(k1)
+    #             kstd2.append(k2)
+
+    # icc = len(kstd1)
+
+    # ncs = list()
+    # for i in range(ic):
+    #     for j in range(icc):
+    #         if i == kstd2[j]:
+    #             ncs.append(istd[i])
+    #             break
+    # print("# Std Stars: {0:d}".format(len(ncs)))
+    # if len(ncs) < 10:
+    #     print(
+    #         "WARNING: The number of standard stars are too small! To ensure the accuracy of `correctphot`, please consider use `--noc` option"
+    #     )
