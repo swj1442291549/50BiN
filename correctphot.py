@@ -80,7 +80,6 @@ def cli(file_name, magtype, noc, method):
         mergecat_dict
     )
 
-
     print("# Star: {0:d}".format(nstar))
 
     # TODO may change how we select standard stars
@@ -105,13 +104,42 @@ def cli(file_name, magtype, noc, method):
         # smag_ncs = np.zeros((noc, nframe))
         smag_ncs = np.zeros((len(ncs), nframe))
         for band in band_list:
-            smag_ncs[:, frame_info.band == band] = np.array([magmatch[ncs, np.abs(frame_info[frame_info.band==band].airmass - 1.4).idxmin(), 0]] * len(frame_info[frame_info.band == band])).T
+            smag_ncs[:, frame_info.band == band] = np.array(
+                [
+                    magmatch[
+                        ncs,
+                        np.abs(
+                            frame_info[frame_info.band == band].airmass - 1.4
+                        ).idxmin(),
+                        0,
+                    ]
+                ]
+                * len(frame_info[frame_info.band == band])
+            ).T
 
-        if len(method.replace("y", '').replace('x','').replace("+", '').replace(" ", '')) == 0 and nband > 1:
+        if (
+            len(
+                method.replace("y", "")
+                .replace("x", "")
+                .replace("+", "")
+                .replace(" ", "")
+            )
+            == 0
+            and nband > 1
+        ):
             print("WARNING: multi-band data must use `--method` with colors!")
             return
         magx, ommag, ommag_err = least_square_correct_phot(
-            magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
+            magmatch,
+            nstar,
+            frame_info,
+            ncs,
+            nframe,
+            posmatch,
+            smag_ncs,
+            nband,
+            band_list,
+            method,
         )
     else:
         if nband > 1:
@@ -301,41 +329,47 @@ def locate_closet_frame_of_band(frame_info, amjd, band):
 
 
 def least_square_correct_phot(
-    magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
+    magmatch,
+    nstar,
+    frame_info,
+    ncs,
+    nframe,
+    posmatch,
+    smag_ncs,
+    nband,
+    band_list,
+    method,
 ):
     magx = np.copy(magmatch)
     if method is not None:
-        ele_list = method.split('+')
+        ele_list = method.split("+")
         ele_list = [ele.strip() for ele in ele_list]
     else:
         ele_list = []
 
     for i in tqdm(range(nframe)):
         magx[:, i, 0] = np.nan
-        dat = pd.DataFrame(
-            {
-                "dmag": smag_ncs[:, i] - magmatch[ncs, i, 0],
-            }
-        )
-        dat_p = pd.DataFrame(
-            {
-                "mag": magmatch[:, i, 0],
-            }
-        )
+        dat = pd.DataFrame({"dmag": smag_ncs[:, i] - magmatch[ncs, i, 0],})
+        dat_p = pd.DataFrame({"mag": magmatch[:, i, 0],})
         for ele in ele_list:
             if ele == "x":
-                dat[ele] = posmatch[ncs, i ,0]
-                dat_p[ele] = posmatch[:, i ,0]
+                dat[ele] = posmatch[ncs, i, 0]
+                dat_p[ele] = posmatch[:, i, 0]
             elif ele == "y":
-                dat[ele] = posmatch[ncs, i ,1]
-                dat_p[ele] = posmatch[:, i ,1]
+                dat[ele] = posmatch[ncs, i, 1]
+                dat_p[ele] = posmatch[:, i, 1]
             else:
                 amjd = frame_info.loc[i]["amjd"]
                 frame_index_0 = locate_closet_frame_of_band(frame_info, amjd, ele[0])
                 frame_index_1 = locate_closet_frame_of_band(frame_info, amjd, ele[1])
                 if frame_index_0 is not None and frame_index_1 is not None:
-                    dat[ele] = magmatch[ncs, frame_index_0, 0] - magmatch[ncs, frame_index_1, 0]
-                    dat_p[ele] = magmatch[:, frame_index_0, 0] - magmatch[:, frame_index_1, 0]
+                    dat[ele] = (
+                        magmatch[ncs, frame_index_0, 0]
+                        - magmatch[ncs, frame_index_1, 0]
+                    )
+                    dat_p[ele] = (
+                        magmatch[:, frame_index_0, 0] - magmatch[:, frame_index_1, 0]
+                    )
                 else:
                     dat[ele] = np.nan
 

@@ -44,7 +44,10 @@ from tqdm import tqdm
     help="Observatory flag. 'd': Delingha; 'l': Lenghu",
 )
 @click.option(
-    "-b", "--band", type=str, help="Passband. If to use more than one bands, list them here without space in between e.g., BV",
+    "-b",
+    "--band",
+    type=str,
+    help="Passband. If to use more than one bands, list them here without space in between e.g., BV",
 )
 def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     """Merge the catalogs"""
@@ -89,7 +92,13 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     band_list = list()
     for i in range(len(band)):
         frame_info_sel = frame_info[frame_info.band == band[i]]
-        print("Read {0:d} {2} frames of {1:d} nights".format(len(frame_info[frame_info.band == band[i]]), len(set(frame_info_sel.mjd)), band[i]))
+        print(
+            "Read {0:d} {2} frames of {1:d} nights".format(
+                len(frame_info[frame_info.band == band[i]]),
+                len(set(frame_info_sel.mjd)),
+                band[i],
+            )
+        )
         band_list.append(band[i])
 
     # Calculate airmass
@@ -216,14 +225,14 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
         for j in range(len(ncs)):
             i = ncs[j]
             f.write(
-                    "{6:5d} {0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
+                "{6:5d} {0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
                     coord_list[medframe_index][i, 0],
                     coord_list[medframe_index][i, 1],
                     apmagmatch[i, medframe_index, 0],
                     apmagmatch[i, medframe_index, 1],
                     psfmagmatch[i, medframe_index, 0],
                     psfmagmatch[i, medframe_index, 1],
-                    i
+                    i,
                 )
             )
     print("Save standard stars info in {0}".format(stdstar_file_name))
@@ -231,9 +240,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     # Write merged uncalibrated data into a file
     if ndate > 1:
         mergecat_file_name = "{0}ALL_{1}.{2}gcat.pkl".format(
-            info_dict_list[0]["file_name"][1:6],
-            band,
-            phot_flag,
+            info_dict_list[0]["file_name"][1:6], band, phot_flag,
         )
     else:
         mergecat_file_name = "{0}{1}.{2}gcat.pkl".format(
@@ -256,7 +263,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
         "mjd_date_list": mjd_date_list,  # MJD of each date
         "ncs": ncs,  # index of standard stars
         "posmatch": posmatch,  # pos array, same format as magmatch (X, Y)
-        "nband": nband, # number of bands
+        "nband": nband,  # number of bands
         "band_list": band_list,
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
@@ -378,7 +385,7 @@ def read_cat_and_info(file_name):
         "fwhm": fwhm,
         "aperture": aperture,
         "nstar": nstar,
-        "band": file_name[-13]
+        "band": file_name[-13],
     }
     return cat, info_dict
 
@@ -412,7 +419,10 @@ def find_medframe_index(frame_info, medframe_factor):
         medframe_index: index of medframe in catfile_list
     """
     ns = frame_info.nstar
-    frame_sel = frame_info[(frame_info.nstar > np.nanmean(ns)) & (frame_info.nstar < np.nanmean(ns) * medframe_factor)]
+    frame_sel = frame_info[
+        (frame_info.nstar > np.nanmean(ns))
+        & (frame_info.nstar < np.nanmean(ns) * medframe_factor)
+    ]
     medframe_index = frame_sel.airmass.idxmin()
     print(
         "Reference frame: {0}  # Stars: {1:3d}".format(

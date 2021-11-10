@@ -349,8 +349,20 @@ def plot_lc(file_name, init_star_index):
                 y1 = lc.mag
                 y2 = lc.magx
                 for i in range(nband):
-                    plt.scatter(x[lc.band == band_list[i]], y1[lc.band == band_list[i]], s=2, c=color_list[i], alpha=0.4)
-                    plt.scatter(x[lc.band == band_list[i]], y2[lc.band == band_list[i]], s=4, c=color_list[i], label=band_list[i])
+                    plt.scatter(
+                        x[lc.band == band_list[i]],
+                        y1[lc.band == band_list[i]],
+                        s=2,
+                        c=color_list[i],
+                        alpha=0.4,
+                    )
+                    plt.scatter(
+                        x[lc.band == band_list[i]],
+                        y2[lc.band == band_list[i]],
+                        s=4,
+                        c=color_list[i],
+                        label=band_list[i],
+                    )
 
                 plt.legend()
                 plt.hlines(
