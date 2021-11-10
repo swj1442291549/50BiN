@@ -292,90 +292,57 @@ def locate_closet_frame_of_band(frame_info, amjd, band):
     if min(amjd_diff) < 1e-3:
         return amjd_diff.idxmin()
 
+
 def least_square_correct_phot(
-    magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method
+    magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
 ):
     magx = np.copy(magmatch)
+    if method is not None:
+        ele_list = method.split('+')
+        ele_list = [ele.strip() for ele in ele_list]
+    else:
+        ele_list = []
     for i in tqdm(range(nframe)):
         magx[:, i, 0] = np.nan
+        dat = pd.DataFrame(
+            {
+                "dmag": smag_ncs[:, i] - magmatch[ncs, i, 0],
+            }
+        )
+        dat_p = pd.DataFrame(
+            {
+                "mag": magmatch[:, i, 0],
+            }
+        )
+        for ele in ele_list:
+            if ele == "x":
+                dat[ele] = posmatch[ncs, i ,0]
+                dat_p[ele] = posmatch[:, i ,0]
+            elif ele == "y":
+                dat[ele] = posmatch[ncs, i ,1]
+                dat_p[ele] = posmatch[:, i ,1]
+            else:
+                amjd = frame_info.loc[i]["amjd"]
+                frame_index_0 = locate_closet_frame_of_band(frame_info, amjd, ele[0])
+                frame_index_1 = locate_closet_frame_of_band(frame_info, amjd, ele[1])
+                if frame_index_0 is not None and frame_index_1 is not None:
+                    dat[ele] = magmatch[ncs, frame_index_0, 0] - magmatch[ncs, frame_index_1, 0]
+                    dat_p[ele] = magmatch[:, frame_index_0, 0] - magmatch[:, frame_index_1, 0]
+                else:
+                    dat[ele] = np.nan
+
         try:
-            dat = pd.DataFrame(
-                {
-                    "dmag": smag_ncs - magmatch[ncs, i, 0],
-                    "x": posmatch[ncs, i, 0],
-                    "y": posmatch[ncs, i, 1],
-                }
-            )
-            if method == "xy":
-                est = smf.ols("dmag ~ x + y", data=dat).fit()
+            if method:
+                est = smf.ols("dmag ~ {0}".format(method), data=dat).fit()
             else:
                 est = smf.ols("dmag ~ 1", data=dat).fit()
         except:
             continue
         else:
-            dat = pd.DataFrame(
-                {
-                    "mag": magmatch[:, i, 0],
-                    "x": posmatch[:, i, 0],
-                    "y": posmatch[:, i, 1],
-                }
-            )
-            dmag_pred = est.predict(dat)
+            dmag_pred = est.predict(dat_p)
             magx[:, i, 0] = dmag_pred + magmatch[:, i, 0]
     ommag, ommag_err = estimate_ommag(magx, nstar)
     return magx, ommag, ommag_err
-
-
-# def least_square_correct_phot(
-#     magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
-# ):
-#     magx = np.copy(magmatch)
-#     if method is not None:
-#         ele_list = method.split('+')
-#         ele_list = [ele.strip() for ele in ele_list]
-#     else:
-#         ele_list = []
-#     for i in tqdm(range(nframe)):
-#         magx[:, i, 0] = np.nan
-#         try:
-#             dat = pd.DataFrame(
-#                 {
-#                     "dmag": smag_ncs - magmatch[ncs, i, 0],
-#                 }
-#             )
-#             dat_p = pd.DataFrame(
-#                 {
-#                     "mag": magmatch[:, i, 0],
-#                 }
-#             )
-#             for ele in ele_list:
-#                 if ele == "x":
-#                     dat[ele] = posmatch[ncs, i ,0]
-#                     dat_p[ele] = posmatch[:, i ,0]
-#                 elif ele == "y":
-#                     dat[ele] = posmatch[ncs, i ,1]
-#                     dat_p[ele] = posmatch[:, i ,1]
-#                 else:
-#                     amjd = frame_info.loc[i]["amjd"]
-#                     frame_index_0 = locate_closet_frame_of_band(frame_info, amjd, ele[0])
-#                     frame_index_1 = locate_closet_frame_of_band(frame_info, amjd, ele[1])
-#                     if frame_index_0 and frame_index_1:
-#                         dat[ele] = magmatch[ncs, frame_index_0, 0] - magmatch[ncs, frame_index_1, 0]
-#                         dat_p[ele] = magmatch[:, frame_index_0, 0] - magmatch[:, frame_index_1, 0]
-#                     else:
-#                         dat[ele] = np.nan
-
-#             if method:
-#                 est = smf.ols("dmag ~ {0}".format(method), data=dat).fit()
-#             else:
-#                 est = smf.ols("dmag ~ 1", data=dat).fit()
-#         except:
-#             continue
-#         else:
-#             dmag_pred = est.predict(dat_p)
-#             magx[:, i, 0] = dmag_pred + magmatch[:, i, 0]
-#     ommag, ommag_err = estimate_ommag(magx, nstar)
-#     return magx, ommag, ommag_err
 
 
 def get_bestframe_index(ndate, magmatch, ncs, nframe_date_list):
