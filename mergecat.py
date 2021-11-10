@@ -168,10 +168,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
             m1 = psfmagmatch[j1, :, 0]
             m2 = psfmagmatch[j2, :, 0]
             dm = m1 - m2  # Magnitude difference between j1 and j2
-            idm = len(dm[~np.isnan(dm)])  # Number of frame with non-nan records
-            sdm = np.nanmean(dm)  # Average magnitude difference
-            sig = np.nansum((dm - sdm) ** 2 * np.abs(np.sign(dm)))
-            sigm[k1, k2] = np.sqrt(sig / idm) * np.sign(sig)
+            sigm[k1, k2] = np.nanstd(dm)
 
     if noc is not None:
         sigm_flat = sigm.reshape(-1)
