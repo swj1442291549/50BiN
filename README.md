@@ -65,7 +65,7 @@ The output files include:
 - `*.{phot_flag}gcat.pkl`: python pickle file that contains all data as a python dictionary
 
 ### `correctphot`
-This program is to calibrate the intrumental photometry via differential photometry method. 
+This program is to calibrate the instrumental photometry via differential photometry method. 
 
 No external standard stars are required. Instead, the brightest `noc` (default: 5) standard stars from `stdstar.dat` are used to conduct the ensemble photometry, that is, using the average chaning behavior of these standard stars over frames to correct the photometry of the remaining stars. 
 
@@ -74,7 +74,7 @@ No external standard stars are required. Instead, the brightest `noc` (default: 
 ```
 Usage: correctphot.py [OPTIONS]
 
-  Calibrate the intrumental photometry
+  Calibrate the instrumental photometry
 
 Options:
   -f, --file_name TEXT  Input pkl file name
