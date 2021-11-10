@@ -208,18 +208,19 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     stdstar_file_name = "stdstar_{0}.dat".format(band)
     with open(stdstar_file_name, "w") as f:
         f.write(
-            "             ra             dec      apmag  apmag_err     psfmag psfmag_err\n"
+            "   id              ra             dec      apmag  apmag_err     psfmag psfmag_err\n"
         )
         for j in range(len(ncs)):
             i = ncs[j]
             f.write(
-                "{0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
+                    "{6:5d} {0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
                     coord_list[medframe_index][i, 0],
                     coord_list[medframe_index][i, 1],
                     apmagmatch[i, medframe_index, 0],
                     apmagmatch[i, medframe_index, 1],
                     psfmagmatch[i, medframe_index, 0],
                     psfmagmatch[i, medframe_index, 1],
+                    i
                 )
             )
     print("Save standard stars info in {0}".format(stdstar_file_name))
