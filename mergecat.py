@@ -190,7 +190,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     kstd2 = list()
     for k1 in range(ic):
         for k2 in range(k1 + 1, ic - 1):
-            if sigm[k1, k2] < sdev:
+            if sigm[k1, k2] < sdev ** 2 * nband:
                 kstd1.append(k1)
                 kstd2.append(k2)
 
