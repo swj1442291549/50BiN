@@ -102,15 +102,21 @@ def cli(file_name, magtype, noc, method):
                 "WARNING: A mininum number of 10 standard stars is required for least-squares fitting"
             )
             return
-        # smag_ncs = magmatch[ncs, medframe_index, 0]
         # smag_ncs = np.zeros((noc, nframe))
         smag_ncs = np.zeros((len(ncs), nframe))
         for band in band_list:
             smag_ncs[:, frame_info.band == band] = np.array([magmatch[ncs, np.abs(frame_info[frame_info.band==band].airmass - 1.4).idxmin(), 0]] * len(frame_info[frame_info.band == band])).T
+
+        if len(method.replace("y", '').replace('x','').replace("+", '').replace(" ", '')) == 0 and nband > 1:
+            print("WARNING: multi-band data must use `--method` with colors!")
+            return
         magx, ommag, ommag_err = least_square_correct_phot(
             magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
         )
     else:
+        if nband > 1:
+            print("WARNING: multi-band data must use `--method` with colors!")
+            return
         magx, ommag, ommag_err = differential_correct_phot(
             magmatch, nstar, frame_info, ncs, medframe_index, nframe
         )
@@ -302,6 +308,7 @@ def least_square_correct_phot(
         ele_list = [ele.strip() for ele in ele_list]
     else:
         ele_list = []
+
     for i in tqdm(range(nframe)):
         magx[:, i, 0] = np.nan
         dat = pd.DataFrame(
