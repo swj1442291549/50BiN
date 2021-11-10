@@ -21,7 +21,7 @@ import warnings
     "--method", type=str, help="Method of correcting photometry. (Empty, 'xy')"
 )
 def cli(file_name, magtype, noc, method):
-    """Calibrate the intrumental photometry"""
+    """Calibrate the instrumental photometry"""
 
     if file_name is None:
         candidate_file_list = glob("*gcat.pkl")
@@ -30,16 +30,16 @@ def cli(file_name, magtype, noc, method):
             print("File: {0}".format(file_name))
         elif len(candidate_file_list) == 0:
             print(
-                "No *gcat.pkl file is found! Please run command `mergecat` in advance!"
+                "WARNING: No *gcat.pkl file is found! Please run command `mergecat` in advance!"
             )
             return
         else:
             print(
-                "More than one *gcat.pkl is found! Please specify which file to use by `correctphot -f FILE_NAME`"
+                "WARNING: More than one *gcat.pkl is found! Please specify which file to use by `correctphot -f FILE_NAME`"
             )
             return
     if not Path(file_name).is_file():
-        print("File not found!")
+        print("WARNING: File not found!")
         return
 
     mergecat_dict = pickle.load(open(file_name, "rb"))
