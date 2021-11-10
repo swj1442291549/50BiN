@@ -186,6 +186,8 @@ def plot_lc(file_name, init_star_index):
         nframe_date_list,
         mjd_date_list,
         ncs,
+        nband,
+        band_list,
     ) = itemgetter(
         "nframe",
         "medframe_index",
@@ -203,6 +205,8 @@ def plot_lc(file_name, init_star_index):
         "nframe_date_list",
         "mjd_date_list",
         "ncs",
+        "nband",
+        "band_list",
     )(
         mergecat_dict
     )
@@ -221,6 +225,9 @@ def plot_lc(file_name, init_star_index):
     mday_flag = False
     airmass_flag = False
     mag_surronding = 0.02
+
+    marker_list = ["o", "v", "^", "D", "s"]
+    color_list = ["C0", "C1", "C2", "C3", "C4"]
 
     def on_key(event):
         global star_index
@@ -341,8 +348,11 @@ def plot_lc(file_name, init_star_index):
                     x = lc.mid_time
                 y1 = lc.mag
                 y2 = lc.magx
-                plt.scatter(x, y1, s=4, c="C0")
-                plt.scatter(x, y2, s=4, c="C1")
+                for i in range(nband):
+                    plt.scatter(x[lc.band == band_list[i]], y1[lc.band == band_list[i]], s=2, c=color_list[i], alpha=0.4)
+                    plt.scatter(x[lc.band == band_list[i]], y2[lc.band == band_list[i]], s=4, c=color_list[i], label=band_list[i])
+
+                plt.legend()
                 plt.hlines(
                     ommag[star_index], min(x), max(x), linestyles="dashed", colors="red"
                 )
@@ -360,11 +370,18 @@ def plot_lc(file_name, init_star_index):
 
                 y1 = lc.mag
                 y2 = lc.magx
+                if mday_flag:
+                    pass
                 # plt.scatter(x, y1, s=4, c="C0")
                 cmap = cm.get_cmap("rainbow")
                 if mjd_index == -1:
                     scatter = plt.scatter(x, y1, s=4, c=lc.mjd, cmap="rainbow")
                     plt.legend(*scatter.legend_elements())
+
+                    # for i in range(nband):
+                    #     plt.scatter(x[lc.band == band_list[i]], y1[lc.band == band_list[i]], s=2, c=color_list[i], label=band_list[i])
+                    #     plt.scatter(x[lc.band == band_list[i]], y2[lc.band == band_list[i]], s=4, c=color_list[i], label=band_list[i])
+                    # plt.legend()
                 else:
                     plt.scatter(
                         x,
