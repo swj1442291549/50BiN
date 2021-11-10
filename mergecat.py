@@ -412,7 +412,8 @@ def find_medframe_index(frame_info, medframe_factor):
         medframe_index: index of medframe in catfile_list
     """
     ns = frame_info.nstar
-    medframe_index = np.abs(ns - np.sum(ns) / len(ns) * medframe_factor).idxmin()
+    frame_sel = frame_info[(frame_info.nstar > np.nanmean(ns)) & (frame_info.nstar < np.nanmean(ns) * medframe_factor)]
+    medframe_index = frame_sel.airmass.idxmin()
     print(
         "Reference frame: {0}  # Stars: {1:3d}".format(
             frame_info.loc[medframe_index]["file_name"],
