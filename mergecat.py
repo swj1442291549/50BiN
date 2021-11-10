@@ -161,16 +161,20 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
 
     # Find non-variable candidate stars for differential photometry
     sigm = np.zeros((ic, ic)) * np.nan
-    for k1 in range(ic):
+    for k1 in tqdm(range(ic)):
         j1 = istd[k1]
         for k2 in range(k1 + 1, ic - 1):
             j2 = istd[k2]
             m1 = psfmagmatch[j1, :, 0]
             m2 = psfmagmatch[j2, :, 0]
             dm = m1 - m2  # Magnitude difference between j1 and j2
-            sigm[k1, k2] = np.nanstd(dm)
+            sig = 0
+            for iband in band_list:
+                sig += np.nanstd(dm[frame_info.band == iband]) ** 2
+            sigm[k1, k2] = sig
 
     if noc is not None:
+        # TODO change
         sigm_flat = sigm.reshape(-1)
         if len(sigm_flat[sigm_flat < sdev]) < noc:
             print(
