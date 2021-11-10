@@ -85,9 +85,11 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
         len(frame_info[frame_info.mjd == mjd_date]) for mjd_date in mjd_date_list
     ]
     ndate = len(mjd_date_list)
+    band_list = list()
     for i in range(len(band)):
         frame_info_sel = frame_info[frame_info.band == band[i]]
         print("Read {0:d} {2} frames of {1:d} nights".format(len(frame_info[frame_info.band == band[i]]), len(set(frame_info_sel.mjd)), band[i]))
+        band_list.append(band[i])
 
     # Calculate airmass
     mountain = read_obs_location(obs_flag)
@@ -250,6 +252,7 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
         "ncs": ncs,  # index of standard stars
         "posmatch": posmatch,  # pos array, same format as magmatch (X, Y)
         "nband": nband, # number of bands
+        "band_list": band_list,
     }
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
     print("Save python pickle data in {0}".format(mergecat_file_name))

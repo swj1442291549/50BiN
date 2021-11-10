@@ -58,6 +58,8 @@ def cli(file_name, magtype, noc, method):
         mjd_date_list,
         ncs,
         posmatch,
+        nband,
+        band_list,
     ) = itemgetter(
         "nframe",
         "medframe_index",
@@ -72,6 +74,8 @@ def cli(file_name, magtype, noc, method):
         "mjd_date_list",
         "ncs",
         "posmatch",
+        "nband",
+        "band_list",
     )(
         mergecat_dict
     )
@@ -81,7 +85,7 @@ def cli(file_name, magtype, noc, method):
 
     # TODO may change how we select standard stars
     if len(ncs) < noc:
-        print("too few std stars selected")
+        print("WARNING: Too few std stars selected!")
         return
     ncs = ncs[:noc]
     print("# Std Stars: {0:d}".format(len(ncs)))
@@ -95,12 +99,12 @@ def cli(file_name, magtype, noc, method):
     if method is not None:
         if noc < 10:
             print(
-                "A mininum number of 10 standard stars is required for least-squares fitting"
+                "WARNING: A mininum number of 10 standard stars is required for least-squares fitting"
             )
             return
         smag_ncs = magmatch[ncs, medframe_index, 0]
         magx, ommag, ommag_err = least_square_correct_phot(
-            magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method
+            magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
         )
     else:
         magx, ommag, ommag_err = differential_correct_phot(
