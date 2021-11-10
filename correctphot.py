@@ -103,8 +103,11 @@ def cli(file_name, magtype, noc, method):
             )
             return
         smag_ncs = magmatch[ncs, medframe_index, 0]
+        # magx, ommag, ommag_err = least_square_correct_phot(
+        #     magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
+        # )
         magx, ommag, ommag_err = least_square_correct_phot(
-            magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
+            magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method
         )
     else:
         magx, ommag, ommag_err = differential_correct_phot(
@@ -138,24 +141,10 @@ def cli(file_name, magtype, noc, method):
         file_name.split(".")[0], file_name.split(".")[1][0], magtype
     )
 
-    mergecat_dict = {
-        "nframe": nframe,
-        "medframe_index": medframe_index,
-        "nstar": nstar,
-        "ndate": ndate,
-        "frame_info": frame_info,
-        "nomatch": nomatch,
-        "coord": coord,
-        "psfmagmatch": psfmagmatch,
-        "apmagmatch": apmagmatch,
-        "magtype": magtype,
-        "magx": magx,
-        "ommag": ommag,
-        "ommag_err": ommag_err,
-        "nframe_date_list": nframe_date_list,
-        "mjd_date_list": mjd_date_list,
-        "ncs": ncs,
-    }
+    mergecat_dict["magtype"] = magtype
+    mergecat_dict["magx"] = magx
+    mergecat_dict["ommag"] = ommag
+    mergecat_dict["ommag_err"] = ommag_err
     pickle.dump(mergecat_dict, open(final_catfile_name, "wb"))
     print("Save corrected python pickle data in {0}".format(final_catfile_name))
 
@@ -216,7 +205,7 @@ def airmass_correct_phot(
             magmatch_best
             - popt[0] * frame_info.loc[bestframe_index_date_list[i]].airmass
         )
-    ommag = np.nanmean(magmatch_best_noairmass, axis=1)  # TODO improve
+    ommag = np.nanmean(magmatch_best_noairmass, axis=1)
     ommag_err = np.nanstd(magmatch_best_noairmass, axis=1)
     magx[:, :, 0] = np.add(magx_delta.T, ommag).T
     frame_info = frame_info.assign(bad=False)
@@ -280,7 +269,6 @@ def fit_airmass_delta(mag_delta_date):
 
 
 def fit_airmass_delta_zeropoint(mag_delta_date):
-    # TODO improve
     mag_delta_date_1 = mag_delta_date[
         (0.583 * mag_delta_date.airmass - 0.566 > mag_delta_date.delta)
         & (mag_delta_date.airmass > 1.5)
@@ -291,15 +279,17 @@ def fit_airmass_delta_zeropoint(mag_delta_date):
     )
     popt = (k, -min(mag_delta_date.airmass) * k)
     perr = (0, 0)
-    # mag_delta_date_1 = mag_delta_date[(0.583 * mag_delta_date.airmass -0.566 > mag_delta_date.delta)]
-    # mag_delta_date_1 = mag_delta_date_1.append({"airmass": min(mag_delta_date.airmass), "delta": 0}, ignore_index=True)
-    # popt, pcov = np.polyfit(mag_delta_date_1.airmass, mag_delta_date_1.delta, 1, cov=True)
-    # perr = np.sqrt(np.diag(pcov))
     bad_frame_index = mag_delta_date[
         (mag_delta_date.delta - np.polyval(popt, mag_delta_date.airmass)) > 0.1
     ].index
     return popt, perr, bad_frame_index
 
+
+def locate_closet_frame_of_band(frame_info, amjd, band):
+    frame_band = frame_info[frame_info.band == band]
+    amjd_diff = np.abs(frame_band.amjd - amjd)
+    if min(amjd_diff) < 1e-3:
+        return amjd_diff.idxmin()
 
 def least_square_correct_phot(
     magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, method
@@ -333,6 +323,58 @@ def least_square_correct_phot(
             magx[:, i, 0] = dmag_pred + magmatch[:, i, 0]
     ommag, ommag_err = estimate_ommag(magx, nstar)
     return magx, ommag, ommag_err
+
+
+# def least_square_correct_phot(
+#     magmatch, nstar, frame_info, ncs, nframe, posmatch, smag_ncs, nband, band_list, method
+# ):
+#     magx = np.copy(magmatch)
+#     if method is not None:
+#         ele_list = method.split('+')
+#         ele_list = [ele.strip() for ele in ele_list]
+#     else:
+#         ele_list = []
+#     for i in tqdm(range(nframe)):
+#         magx[:, i, 0] = np.nan
+#         try:
+#             dat = pd.DataFrame(
+#                 {
+#                     "dmag": smag_ncs - magmatch[ncs, i, 0],
+#                 }
+#             )
+#             dat_p = pd.DataFrame(
+#                 {
+#                     "mag": magmatch[:, i, 0],
+#                 }
+#             )
+#             for ele in ele_list:
+#                 if ele == "x":
+#                     dat[ele] = posmatch[ncs, i ,0]
+#                     dat_p[ele] = posmatch[:, i ,0]
+#                 elif ele == "y":
+#                     dat[ele] = posmatch[ncs, i ,1]
+#                     dat_p[ele] = posmatch[:, i ,1]
+#                 else:
+#                     amjd = frame_info.loc[i]["amjd"]
+#                     frame_index_0 = locate_closet_frame_of_band(frame_info, amjd, ele[0])
+#                     frame_index_1 = locate_closet_frame_of_band(frame_info, amjd, ele[1])
+#                     if frame_index_0 and frame_index_1:
+#                         dat[ele] = magmatch[ncs, frame_index_0, 0] - magmatch[ncs, frame_index_1, 0]
+#                         dat_p[ele] = magmatch[:, frame_index_0, 0] - magmatch[:, frame_index_1, 0]
+#                     else:
+#                         dat[ele] = np.nan
+
+#             if method:
+#                 est = smf.ols("dmag ~ {0}".format(method), data=dat).fit()
+#             else:
+#                 est = smf.ols("dmag ~ 1", data=dat).fit()
+#         except:
+#             continue
+#         else:
+#             dmag_pred = est.predict(dat_p)
+#             magx[:, i, 0] = dmag_pred + magmatch[:, i, 0]
+#     ommag, ommag_err = estimate_ommag(magx, nstar)
+#     return magx, ommag, ommag_err
 
 
 def get_bestframe_index(ndate, magmatch, ncs, nframe_date_list):
