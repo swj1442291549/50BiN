@@ -136,6 +136,7 @@ def cli(file_name, magtype, noc, method):
         file_name.split(".")[0], file_name.split(".")[1][0], magtype
     )
     with open(mmag_catfile_name, "w") as f:
+        f.write("   id              ra             dec       mmag   mmag_err\n")
         for i in range(nstar):
             f.write(
                 "{0:5d} {1:15.8f} {2:15.8f} {3:10.5f} {4:10.5f}\n".format(
