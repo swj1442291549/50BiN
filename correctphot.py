@@ -149,8 +149,8 @@ def cli(file_name, magtype, noc, method):
             magmatch, nstar, frame_info, ncs, medframe_index, nframe
         )
 
-    # bestframe_index_date_list = get_bestframe_index(ndate, magmatch, ncs, nframe_date_list)
-    # magx, ommag, ommag_err, frame_info = airmass_correct_phot(magmatch, nstar, frame_info, ncs, nframe, bestframe_index_date_list, nframe_date_list, ndate, mjd_date_list)
+    frame_info = select_bad_frames(magx, ncs, frame_info, nframe, mjd_date_list, band_list)
+
 
     for i in range(noc):
         print(
@@ -185,69 +185,20 @@ def cli(file_name, magtype, noc, method):
     print("Save corrected python pickle data in {0}".format(final_catfile_name))
 
 
-def airmass_correct_phot(
-    magmatch,
-    nstar,
-    frame_info,
-    ncs,
-    nframe,
-    bestframe_index_date_list,
-    nframe_date_list,
-    ndate,
-    mjd_date_list,
-):
-    ncs_magmatch_delta = np.copy(magmatch[ncs, :, 0])
-    magx_delta = np.zeros((nstar, nframe))
-    magx = np.copy(magmatch)
-    magmatch_best_noairmass = np.zeros((nstar, ndate))
-    bad_frame_index_list = list()
-    for i in range(ndate):
-        ncs_magmatch_delta[
-            :, int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1]))
-        ] = np.subtract(
-            magmatch[
-                ncs,
-                int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1])),
-                0,
-            ].T,
-            magmatch[ncs, bestframe_index_date_list[i], 0],
-        ).T
-        ncs_magmatch_delta_mean_date = np.nanmean(
-            ncs_magmatch_delta[
-                :, int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1]))
-            ],
-            axis=0,
-        )  # ? maybe not mean
-        airmass = frame_info[frame_info.mjd == mjd_date_list[i]].airmass
-        mag_delta_date = pd.DataFrame(
-            {"airmass": airmass, "delta": ncs_magmatch_delta_mean_date}
-        )
-        popt, perr, bad_frame_index = fit_airmass_delta_zeropoint(mag_delta_date)
-        bad_frame_index_list.append(bad_frame_index)
+def select_bad_frames(magx, ncs, frame_info, nframe, mjd_date_list, band_list):
+    magx_ncs = magx[ncs, :, 0]
+    is_bad = np.zeros(nframe)
+    for mjd_date in mjd_date_list:
+        for band in band_list:
+            index = frame_info[(frame_info.mjd == mjd_date) & (frame_info.band == band)].index
+            magx_ncs_mean = np.nanmean(magx_ncs[:, index], axis=1)
+            magx_ncs_std = np.nanstd(magx_ncs[:, index], axis=1)
+            sig = (np.abs(np.subtract(magx_ncs[:, index].T, magx_ncs_mean)) / magx_ncs_std).T
+            is_bad[index] = np.sum(sig > 3, axis=0) > 1
+    is_bad = np.array(is_bad, dtype=bool)
+    frame_info = frame_info.assign(is_bad=is_bad)
+    return frame_info
 
-        magmatch_delta = np.subtract(
-            magmatch[
-                :,
-                int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1])),
-                0,
-            ].T,
-            magmatch[:, bestframe_index_date_list[i], 0],
-        ).T
-        magx_delta[
-            :, int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1]))
-        ] = np.subtract(magmatch_delta, np.polyval(popt, airmass))
-        magmatch_best = magmatch[:, bestframe_index_date_list[i], 0]
-        magmatch_best_noairmass[:, i] = (
-            magmatch_best
-            - popt[0] * frame_info.loc[bestframe_index_date_list[i]].airmass
-        )
-    ommag = np.nanmean(magmatch_best_noairmass, axis=1)
-    ommag_err = np.nanstd(magmatch_best_noairmass, axis=1)
-    magx[:, :, 0] = np.add(magx_delta.T, ommag).T
-    frame_info = frame_info.assign(bad=False)
-    frame_info.loc[np.concatenate(bad_frame_index_list), "bad"] = True
-    magx[:, np.concatenate(bad_frame_index_list), :] = np.nan
-    return magx, ommag, ommag_err, frame_info
 
 
 def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe):
@@ -386,34 +337,6 @@ def least_square_correct_phot(
     ommag, ommag_err = estimate_ommag(magx, nstar)
     return magx, ommag, ommag_err
 
-
-def get_bestframe_index(ndate, magmatch, ncs, nframe_date_list):
-    bestframe_index_date_list = list()
-    for i in range(ndate):
-        ncs_magmatch_mag_date = magmatch[
-            ncs, int(sum(nframe_date_list[:i])) : int(sum(nframe_date_list[: i + 1])), 0
-        ]
-        ncs_magmatch_magshift_date = np.subtract(
-            ncs_magmatch_mag_date.T, np.nanmean(ncs_magmatch_mag_date, axis=1)
-        ).T
-        ncs_magmatch_magmean_date = np.nanmean(ncs_magmatch_magshift_date, axis=0)
-        smoothen = 5
-        x_ncs_magmatch_magmean_date = np.pad(
-            ncs_magmatch_magmean_date,
-            (smoothen // 2, smoothen - smoothen // 2),
-            mode="edge",
-        )
-        x_ncs_magmatch_magmean_date = (
-            np.cumsum(
-                x_ncs_magmatch_magmean_date[smoothen:]
-                - x_ncs_magmatch_magmean_date[:-smoothen]
-            )
-            / smoothen
-        )
-        bestframe_index_date_list.append(
-            x_ncs_magmatch_magmean_date.argmin() + int(sum(nframe_date_list[:i]))
-        )
-    return bestframe_index_date_list
 
 
 if __name__ == "__main__":
