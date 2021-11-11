@@ -18,7 +18,7 @@ import warnings
 )
 @click.option("--noc", type=int, default=5, help="Number of selected standard stars")
 @click.option(
-    "--method", type=str, help="Method of correcting photometry. (Empty, 'xy')"
+    "--method", type=str, help="Method of correcting photometry (See README for details)."
 )
 def cli(file_name, magtype, noc, method):
     """Calibrate the instrumental photometry"""

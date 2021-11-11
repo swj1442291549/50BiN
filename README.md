@@ -36,7 +36,7 @@ The raw data have four types of files, with different extensions:
 
 `phot_flag` (default: 0) controls which aperture photometry (`apmag`) to be used. 0: original aperture photometry; 1: aperture photometry with star center refitted by PSF. It has no interference with PSF photometry (`psfmag`).
 
-A reference frame, which will be used to match other frames, is selected based on the number of stars. Note, the size of the catalogue is determined by that of the reference frame. The number of stars for the reference frame is set to be `medframe_factor` (default: 1.2) times the mean number. 
+A reference frame, which will be used to match other frames, is selected based on the number of stars and the airmass estimates. Note, the size of the catalogue is determined by that of the reference frame. The number of stars for the reference frame is set to be `medframe_factor` (default: 1.2) times the mean number. The final selection is taken for the frames which has relatively the same star number but with the least airmass.
 
 Once the reference frame is decided, each star in all other frames is matched by its coordinates. This is controlled by `dmatch` (default: 1.0 arcsec), setting the maximum matching distance. 
 
@@ -47,16 +47,14 @@ Usage: mergecat.py [OPTIONS]
 
 Options:
   --phot_flag INTEGER      Magnitude type. 0: original aperture photometry; 1:
-                           aperture photometry with star center refitted by
-                           PSF
+                           aperture photometry with star center refitted by PSF
   --dmatch FLOAT           Position matching distance in arcsec
   --sdev FLOAT             Standard deviation for none variable selection
-  --noc INTEGER            Minimum number of standard candidates. Not the same
-                           as Std Stars output
-  --medframe_factor FLOAT  A factor on average star number in a frame for
-                           reference frame selection
+  --noc INTEGER            Minimum number of standard candidates. Not the same as Std Stars output
+  --medframe_factor FLOAT  A factor on average star number in a frame for reference frame selection
   --obs_flag TEXT          Observatory flag. 'd': Delingha; 'l': Lenghu
-  -b, --band TEXT          Passband
+  -b, --band TEXT          Passband. If to use more than one
+                           bands, list them here without space in between e.g., BV
   --help                   Show this message and exit.
 ```
 
@@ -69,6 +67,8 @@ This program is to calibrate the instrumental photometry via differential photom
 
 No external standard stars are required. Instead, the brightest `noc` (default: 5) standard stars from `stdstar.dat` are used to conduct the ensemble photometry, that is, using the average chaning behavior of these standard stars over frames to correct the photometry of the remaining stars. 
 
+`method` option controls which method for differential correction. If left empty, an average magnitude shift (m-m0) among standard stars will be used. This is the fastest one, but only suitable for single-band data. You could also use least-square fitting method. In that case, you need to specify which parameter to fit. The parameters can be the coordinates on the CCD (`x`, `y`) and its color (e.g., B-V). They should be joined by the plus sign `+` with no space. For instance, if you only want to use the coordinate, `--method x+y`. For multi-band data, you have to include (at least) one color in the method option, e.g., `--method BV+VI` (which means B-V and V-I).  
+
 `magtype` controls which magnitude to used in this process. `a` for aperture photometry and `p` for psf photometry.
 
 ```
@@ -80,6 +80,8 @@ Options:
   -f, --file_name TEXT  Input pkl file name
   --magtype TEXT        magnitude type. a: aperture; p: psf
   --noc INTEGER         Number of selected standard stars
+  --method TEXT         Method of correcting photometry (See
+                        README for details).
   --help                Show this message and exit.
 ```
 The output files include:
@@ -100,7 +102,8 @@ Options:
   --help                         Show this message and exit.
 ```
 
-The default figure is shown in UT horizontal axis with multiple-day data folded into a single frame. It can be switched to day mode that expands the data into the MJD axis.
+The default figure is shown in UT horizontal axis with multiple-day data folded into a single frame. It can be switched to day mode that expands the data into the MJD axis. The bad frames are indicated as crosses.
+
 You can interact with the plot through the keyboard:
 - `n`: next star; next day (day mode)
 - `N`: previous star; previous day (day mode)
