@@ -363,6 +363,14 @@ def plot_lc(file_name, init_star_index):
                         c=color_list[i],
                         label=band_list[i],
                     )
+                    plt.scatter(
+                        x[(lc.band == band_list[i]) & (lc.is_bad)],
+                        y2[(lc.band == band_list[i]) & (lc.is_bad)],
+                        s=20,
+                        marker="x",
+                        c=color_list[i],
+                        label="__nolegend__",
+                    )
 
                 plt.legend()
                 plt.hlines(
@@ -382,28 +390,48 @@ def plot_lc(file_name, init_star_index):
 
                 y1 = lc.mag
                 y2 = lc.magx
-                if mday_flag:
-                    pass
-                # plt.scatter(x, y1, s=4, c="C0")
-                cmap = cm.get_cmap("rainbow")
-                if mjd_index == -1:
-                    scatter = plt.scatter(x, y1, s=4, c=lc.mjd, cmap="rainbow")
-                    plt.legend(*scatter.legend_elements())
-
-                    # for i in range(nband):
-                    #     plt.scatter(x[lc.band == band_list[i]], y1[lc.band == band_list[i]], s=2, c=color_list[i], label=band_list[i])
-                    #     plt.scatter(x[lc.band == band_list[i]], y2[lc.band == band_list[i]], s=4, c=color_list[i], label=band_list[i])
-                    # plt.legend()
+                if not mday_flag:
+                    for i in range(nband):
+                        plt.scatter(
+                            x[lc.band == band_list[i]],
+                            y1[lc.band == band_list[i]],
+                            s=4,
+                            c=color_list[i],
+                            label=band_list[i],
+                        )
+                        plt.scatter(
+                            x[(lc.band == band_list[i]) & (lc.is_bad)],
+                            y1[(lc.band == band_list[i]) & (lc.is_bad)],
+                            s=20,
+                            c=color_list[i],
+                            marker="x",
+                            label="__nolegend__"
+                        )
+                    plt.legend()
                 else:
-                    plt.scatter(
-                        x,
-                        y1,
-                        s=4,
-                        color=cmap(
-                            (mjd_date_list[mjd_index] - min(mjd_date_list))
-                            / (max(mjd_date_list) - min(mjd_date_list))
-                        ),
-                    )
+                    cmap = cm.get_cmap("rainbow")
+                    if mjd_index == -1:
+                        scatter = plt.scatter(x, y1, s=4, c=lc.mjd, cmap="rainbow")
+                        plt.scatter(x[lc.is_bad], y1[lc.is_bad], s=20, marker="x", c=lc[lc.is_bad].mjd, cmap="rainbow")
+                        plt.legend(*scatter.legend_elements())
+                    else:
+                        for i in range(nband):
+                            plt.scatter(
+                                x[lc.band == band_list[i]],
+                                y1[lc.band == band_list[i]],
+                                s=4,
+                                c=color_list[i],
+                                label=band_list[i],
+                            )
+                            plt.scatter(
+                                x[(lc.band == band_list[i]) & (lc.is_bad)],
+                                y1[(lc.band == band_list[i]) & (lc.is_bad)],
+                                s=20,
+                                c=color_list[i],
+                                marker="x",
+                                label="__nolegend__"
+                            )
+                        plt.legend()
 
                 plt.ylim(
                     np.percentile(y2, 3) - mag_surronding,
