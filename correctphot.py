@@ -177,6 +177,7 @@ def cli(file_name, magtype, noc, method):
         file_name.split(".")[0], file_name.split(".")[1][0], magtype
     )
 
+    mergecat_dict["frame_info"] = frame_info
     mergecat_dict["magtype"] = magtype
     mergecat_dict["magx"] = magx
     mergecat_dict["ommag"] = ommag
