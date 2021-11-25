@@ -68,7 +68,7 @@ def coord_to_str(ra, dec):
     return ra_str, dec_str
 
 
-def save_single_phot(file_name, magtype, star_index, amjd, coord, magmatch, magx):
+def save_single_phot(file_name, magtype, star_index, amjd, coord, frame_info, magmatch, magx):
     """Save single star's photometry into file
 
     Args:
@@ -96,28 +96,30 @@ def save_single_phot(file_name, magtype, star_index, amjd, coord, magmatch, magx
         f.write(
             "{0} {1} {2} (J2000) {3}\n".format(star_index, ra_str, dec_str, magtype)
         )
-        for i in range(magmatch.shape[0]):
+        for i in range(magmatch.shape[1]):
             f.write(
-                "{0:8d} {1:7d} {2:10.5f} {3:10.5f} {4:10.5f}\n".format(
+                "{0:5d} {1:7d} {2:10.5f} {3:10.5f} {4:10.5f} {5}\n".format(
                     i,
                     int(amjd[star_index]),
                     (amjd[star_index] - int(amjd[star_index]) + 0.5) * 24,
-                    magmatch[i, star_index, 0],
-                    magmatch[i, star_index, 1],
+                    magmatch[star_index, i, 0],
+                    magmatch[star_index, i, 1],
+                    frame_info.iloc[i]['band']
                 )
             )
     with open(mag_file_name, "w") as f:
         f.write(
             "{0} {1} {2} (J2000) {3}\n".format(star_index, ra_str, dec_str, magtype)
         )
-        for i in range(magmatch.shape[0]):
+        for i in range(magmatch.shape[1]):
             f.write(
-                "{0:8d} {1:7d} {2:10.5f} {3:10.5f} {4:10.5f}\n".format(
+                "{0:5d} {1:7d} {2:10.5f} {3:10.5f} {4:10.5f} {5}\n".format(
                     i,
                     int(amjd[star_index]),
                     (amjd[star_index] - int(amjd[star_index]) + 0.5) * 24,
-                    magx[i, star_index, 0],
-                    magx[i, star_index, 1],
+                    magx[star_index, i, 0],
+                    magx[star_index, i, 1],
+                    frame_info.iloc[i]['band']
                 )
             )
 
@@ -284,6 +286,7 @@ def plot_lc(file_name, init_star_index):
                 star_index,
                 frame_info["amjd"],
                 coord,
+                frame_info,
                 magmatch,
                 magx,
             )
