@@ -100,8 +100,8 @@ def save_single_phot(file_name, magtype, star_index, amjd, coord, frame_info, ma
             f.write(
                 "{0:5d} {1:7d} {2:10.5f} {3:10.5f} {4:10.5f} {5}\n".format(
                     i,
-                    int(amjd[star_index]),
-                    (amjd[star_index] - int(amjd[star_index]) + 0.5) * 24,
+                    int(amjd[i]),
+                    (amjd[i] - int(amjd[i]) + 0.5) * 24,
                     magmatch[star_index, i, 0],
                     magmatch[star_index, i, 1],
                     frame_info.iloc[i]['band']
@@ -115,8 +115,8 @@ def save_single_phot(file_name, magtype, star_index, amjd, coord, frame_info, ma
             f.write(
                 "{0:5d} {1:7d} {2:10.5f} {3:10.5f} {4:10.5f} {5}\n".format(
                     i,
-                    int(amjd[star_index]),
-                    (amjd[star_index] - int(amjd[star_index]) + 0.5) * 24,
+                    int(amjd[i]),
+                    (amjd[i] - int(amjd[i]) + 0.5) * 24,
                     magx[star_index, i, 0],
                     magx[star_index, i, 1],
                     frame_info.iloc[i]['band']
