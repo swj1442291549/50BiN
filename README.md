@@ -116,6 +116,6 @@ You can interact with the plot through the keyboard:
 - `q`: quit
 
 The output files include:
-- `*.orig`: original photometry of one star (`index`, `mjd`, `ut`, `mag`, `mag_err`)
-- `*.dat`: corrected photometry of one star (`index`, `mjd`, `ut`, `magx`, `magx_err`)
+- `*.orig`: original photometry of one star (`index`, `mjd`, `ut`, `mag`, `mag_err`, `band`)
+- `*.dat`: corrected photometry of one star (`index`, `mjd`, `ut`, `magx`, `magx_err`, `band`)
 
