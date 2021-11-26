@@ -15,7 +15,7 @@ import numpy as np
 )
 def cli(file_name, init_star_index):
     """Plot light curves"""
-
+    
     if file_name is None:
         candidate_file_list = glob("*gcat_cal.pkl")
         if len(candidate_file_list) == 1:
