@@ -88,7 +88,7 @@ The output files include:
 - `*.{phot_flag}{mag_type}gcat_mmag`: average brightness of each star (`index`, `ra`, `dec`, `mmag`, `mmag_err`)
 - `*.{phot_flag}{mag_type}gcat_cal.pkl`: python pickle file that contains all data
 
-bad frames are marked if the standard stars' deviations on those frames are larger than 3 sigma. 
+bad frames are marked if the standard stars' deviations on those frames are larger than 3 sigma. Those with large fwhm are also suggested to be bad frames, which is left with the user to decide.
 
 
 ### `plotcurve`
