@@ -290,6 +290,18 @@ def read_obs_location(obs_flag):
         )
         return mountain
 
+def convert_coord_str_float(ra_s, dec_s):
+    rah = pd.to_numeric(ra_s[0])
+    ram = pd.to_numeric(ra_s[1])
+    ras = pd.to_numeric(ra_s[2])
+    ra = 15 * (rah + ram / 60 + ras / 3600)
+    decd = pd.to_numeric(dec_s[0])
+    decm = pd.to_numeric(dec_s[1])
+    decs = pd.to_numeric(dec_s[2])
+    dec = np.abs(decd) + decm / 60 + decs / 3600
+    dec = dec * ((decd == np.abs(decd)) - 0.5) * 2
+    return ra, dec
+
 
 def read_cat_and_info(file_name):
     """Read and sort data and info from cat file
@@ -341,17 +353,9 @@ def read_cat_and_info(file_name):
     if len(cat) == 0:
         return None, None
     ra_s = cat.RA.str.split(":", expand=True)
-    rah = pd.to_numeric(ra_s[0])
-    ram = pd.to_numeric(ra_s[1])
-    ras = pd.to_numeric(ra_s[2])
-    ra = 15 * (rah + ram / 60 + ras / 3600)
-    cat = cat.assign(ra=ra)
     dec_s = cat.DEC.str.split(":", expand=True)
-    decd = pd.to_numeric(dec_s[0])
-    decm = pd.to_numeric(dec_s[1])
-    decs = pd.to_numeric(dec_s[2])
-    dec = np.abs(decd) + decm / 60 + decs / 3600
-    dec = dec * ((decd == np.abs(decd)) - 0.5) * 2
+    ra, dec = convert_coord_str_float(ra_s, dec_s)
+    cat = cat.assign(ra=ra)
     cat = cat.assign(dec=dec)
     cat.sort_values("apmag2", inplace=True)
     cat = cat.to_numpy()
