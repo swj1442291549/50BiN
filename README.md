@@ -104,13 +104,20 @@ Options:
   --help                         Show this message and exit.
 ```
 
-The default figure is shown in UT horizontal axis with multiple-day data folded into a single frame. It can be switched to day mode that expands the data into the MJD axis. The bad frames are indicated as crosses.
+The default figure is shown in UT horizontal axis with multiple-day data folded into a single frame. The `plot_flag` controls the output format:
+- `l`: Light curve (magnitude vs. mjd)
+- `a`: airmass mode (raw magnitude vs. airmass)
+- `f`: FWHM mode (FWHM vs. mjd)
+
+It can be switched to day mode that expands the data into the MJD axis. The bad frames are indicated as crosses.
 
 You can interact with the plot through the keyboard:
 - `n`: next star; next day (day mode)
 - `N`: previous star; previous day (day mode)
 - `d`: switch day mode
-- `a`: switch airmass / light curve
+- `l`: switch on/off light curve mode
+- `a`: switch on/off airmass mode
+- `f`: switch on/off FWHM mode
 - `z`: zoom out
 - `Z`: zoom in
 - `r`: reset scale
