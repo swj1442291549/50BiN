@@ -148,6 +148,13 @@ def prepare_lc_df(star_index, frame_info, magmatch, magx):
     return lc
 
 
+
+def handle_margin(mag_surronding, mag_zoom_index):
+    if mag_zoom_index >= -2:
+        return mag_surronding * 1.4 ** mag_zoom_index
+    else:
+        return (mag_zoom_index + 2) * mag_surronding / 2
+
 def plot_lc(file_name, init_star_index):
     """Plot light curve
 
@@ -170,6 +177,10 @@ def plot_lc(file_name, init_star_index):
         plt.rcParams["keymap.save"].remove("s")
     if "a" in plt.rcParams["keymap.all_axes"]:
         plt.rcParams["keymap.all_axes"].remove("a")
+    if "f" in plt.rcParams["keymap.fullscreen"]:
+        plt.rcParams["keymap.fullscreen"].remove("f")
+    if "l" in plt.rcParams["keymap.yscale"]:
+        plt.rcParams["keymap.yscale"].remove("l")
     mergecat_dict = pickle.load(open(file_name, "rb"))
     (
         nframe,
@@ -220,13 +231,25 @@ def plot_lc(file_name, init_star_index):
     global star_index
     global mday_flag
     global mjd_index
-    global airmass_flag
-    global mag_surronding
+    global plot_flag
+    global plot_flag_old
+    global mag_zoom_index
+    global fwhm_zoom_index
     star_index = init_star_index
     mjd_index = -1
     mday_flag = False
-    airmass_flag = False
+    plot_flag = "l"
+    plot_flag_old = "l"
     mag_surronding = 0.02
+    fwhm_surronding = 10
+    mag_zoom_index = 0
+    fwhm_zoom_index = 0
+
+    plot_label_dict = {
+            "l": "Light curve",
+            "a": "Airmass",
+            "f": "FWHM"
+            }
 
     marker_list = ["o", "v", "^", "D", "s"]
     color_list = ["C0", "C1", "C2", "C3", "C4"]
@@ -235,13 +258,16 @@ def plot_lc(file_name, init_star_index):
         global star_index
         global mday_flag
         global mjd_index
-        global airmass_flag
-        global mag_surronding
+        global plot_flag
+        global plot_flag_old
+        global mag_zoom_index
+        global fwhm_zoom_index
         plt.clf()
         text_x = 0.05
         text_y = 0.02
 
         if event.key == "n":
+            fwhm_zoom_index = 0
             if mday_flag:
                 mjd_index += 1
                 mjd_index = mjd_index % ndate
@@ -261,6 +287,7 @@ def plot_lc(file_name, init_star_index):
                     )
                 )
         elif event.key == "N":
+            fwhm_zoom_index = 0
             if mday_flag:
                 mjd_index -= 1
                 mjd_index = mjd_index % ndate
@@ -293,26 +320,48 @@ def plot_lc(file_name, init_star_index):
             return
         elif event.key == "d":
             mday_flag = not mday_flag
+            fwhm_zoom_index = 0
             if not mday_flag:
                 mjd_index = -1
                 plt.text(text_x, text_y, "NORMAL mode", transform=plt.gca().transAxes)
             else:
                 plt.text(text_x, text_y, "DAY mode", transform=plt.gca().transAxes)
         elif event.key == "z":
-            mag_surronding *= 1.4
+            if plot_flag == "f":
+                fwhm_zoom_index += 1
+            else:
+                mag_zoom_index += 1
             plt.text(text_x, text_y, "Zoom Out", transform=plt.gca().transAxes)
         elif event.key == "Z":
-            mag_surronding /= 1.4
+            if plot_flag == "f":
+                fwhm_zoom_index -= 1
+            else:
+                mag_zoom_index -= 1
             plt.text(text_x, text_y, "Zoom In", transform=plt.gca().transAxes)
         elif event.key == "a":
-            airmass_flag = not airmass_flag
-            if not airmass_flag:
-                # mjd_index = -1
-                plt.text(text_x, text_y, "Light Curve", transform=plt.gca().transAxes)
+            if plot_flag != "a":
+                plot_flag_old = plot_flag
+                plot_flag = "a"
             else:
-                plt.text(text_x, text_y, "AIRMASS", transform=plt.gca().transAxes)
+                plot_flag_old, plot_flag = plot_flag, plot_flag_old
+            plt.text(text_x, text_y, plot_label_dict[plot_flag], transform=plt.gca().transAxes)
+        elif event.key == "f":
+            if plot_flag != "f":
+                plot_flag_old = plot_flag
+                plot_flag = "f"
+            else:
+                plot_flag_old, plot_flag = plot_flag, plot_flag_old
+            plt.text(text_x, text_y, plot_label_dict[plot_flag], transform=plt.gca().transAxes)
+        elif event.key == "l":
+            if plot_flag != "l":
+                plot_flag_old = plot_flag
+                plot_flag = "l"
+            else:
+                plot_flag_old, plot_flag = plot_flag, plot_flag_old
+            plt.text(text_x, text_y, plot_label_dict[plot_flag], transform=plt.gca().transAxes)
         elif event.key == "r":
-            mag_surronding = 0.02
+            mag_zoom_index = 0
+            fwhm_zoom_index = 0
             plt.text(text_x, text_y, "Reset", transform=plt.gca().transAxes)
         else:
             return
@@ -324,8 +373,10 @@ def plot_lc(file_name, init_star_index):
             star_index,
             mday_flag,
             mjd_index,
-            airmass_flag,
-            mag_surronding,
+            plot_flag,
+            plot_flag_old,
+            mag_zoom_index,
+            fwhm_zoom_index,
         )
         plt.draw()
 
@@ -336,14 +387,17 @@ def plot_lc(file_name, init_star_index):
         star_index,
         mday_flag,
         mjd_index,
-        airmass_flag,
-        mag_surronding,
+        plot_flag,
+        plot_flag_old,
+        mag_zoom_index,
+        fwhm_zoom_index,
     ):
         lc = prepare_lc_df(star_index, frame_info, magmatch, magx)
-        if not airmass_flag:
+        if plot_flag == 'l':
             if mjd_index != -1:
                 lc = lc[lc.mjd == mjd_date_list[mjd_index]]
             xlabel = "MJD"
+            ylabel = "magnitude"
             if len(lc) > 0:
                 if mday_flag:
                     x = lc.amjd - int(min(lc.amjd))
@@ -380,14 +434,15 @@ def plot_lc(file_name, init_star_index):
                     ommag[star_index], min(x), max(x), linestyles="dashed", colors="red"
                 )
                 plt.ylim(
-                    np.percentile(y2, 3) - mag_surronding,
-                    np.percentile(y2, 97) + mag_surronding,
+                    np.percentile(y2, 3) - handle_margin(mag_surronding, mag_zoom_index),
+                    np.percentile(y2, 97) + handle_margin(mag_surronding, mag_zoom_index),
                 )
                 plt.gca().invert_yaxis()
-        else:
+        elif plot_flag == "a":
             if mjd_index != -1:
                 lc = lc[lc.mjd == mjd_date_list[mjd_index]]
             xlabel = "airmass"
+            ylabel = "magnitude"
             if len(lc) > 0:
                 x = lc.airmass
 
@@ -435,13 +490,44 @@ def plot_lc(file_name, init_star_index):
                                 label="__nolegend__"
                             )
                         plt.legend()
-
                 plt.ylim(
-                    np.percentile(y2, 3) - mag_surronding,
-                    np.percentile(y2, 97) + mag_surronding,
+                    np.percentile(y2, 3) - handle_margin(mag_surronding, mag_zoom_index),
+                    np.percentile(y2, 97) + handle_margin(mag_surronding, mag_zoom_index),
                 )
                 plt.gca().invert_yaxis()
-        ylabel = "Magnitude"
+        elif plot_flag == "f":
+            if mjd_index != -1:
+                lc = lc[lc.mjd == mjd_date_list[mjd_index]]
+            xlabel = "MJD"
+            ylabel = "FWHM"
+            if len(lc) > 0:
+                if mday_flag:
+                    x = lc.amjd - int(min(lc.amjd))
+                else:
+                    x = lc.mid_time
+                y1 = lc.fwhm
+                for i in range(nband):
+                    plt.scatter(
+                        x[lc.band == band_list[i]],
+                        y1[lc.band == band_list[i]],
+                        s=2,
+                        c=color_list[i],
+                        label=band_list[i],
+                    )
+                    plt.scatter(
+                        x[(lc.band == band_list[i]) & (lc.is_bad)],
+                        y1[(lc.band == band_list[i]) & (lc.is_bad)],
+                        s=20,
+                        marker="x",
+                        c=color_list[i],
+                        label="__nolegend__",
+                    )
+
+                plt.legend()
+                plt.ylim(
+                    min(y1),
+                    max(y1) + handle_margin(fwhm_surronding, fwhm_zoom_index) - fwhm_surronding,
+                )
         title = "#: {0:4d}  M = {1:.2f}  RA: {3}  DEC: {4}  MJD+{2:d}".format(
             star_index,
             ommag[star_index],
@@ -460,8 +546,10 @@ def plot_lc(file_name, init_star_index):
         star_index,
         mday_flag,
         mjd_index,
-        airmass_flag,
-        mag_surronding,
+        plot_flag,
+        plot_flag_old,
+        mag_zoom_index,
+        fwhm_zoom_index,
     )
     print(
         "#: {0:4d}  M = {1:5.2f}  RA: {2}  DEC: {3}".format(
