@@ -4,6 +4,7 @@ from operator import itemgetter
 from matplotlib import pyplot as plt
 from glob import glob
 from matplotlib import cm
+from mergecat import convert_coord_str_float
 import click
 import numpy as np
 
@@ -13,9 +14,13 @@ import numpy as np
 @click.option(
     "-i", "--init_star_index", type=int, default=0, help="Index of star to plot"
 )
-def cli(file_name, init_star_index):
+@click.option(
+        "--coord", type=str, help="Coordinate of the query star. Example: '0:0:0.0 0:0:0.0' or '0 0 0.0 0 0 0.0' or '0.0 0.0'"
+)
+def cli(file_name, init_star_index, coord):
     """Plot light curves"""
     
+    dmatch = 1
     if file_name is None:
         candidate_file_list = glob("*gcat_cal.pkl")
         if len(candidate_file_list) == 1:
@@ -32,10 +37,39 @@ def cli(file_name, init_star_index):
             )
             return
     if not Path(file_name).is_file():
-        print("File not found!")
+        print("WARNING: File not found!")
         return
 
     mergecat_dict = pickle.load(open(file_name, "rb"))
+
+    if coord is not None:
+        print("Searching coordinate ...")
+        c_split = coord.split()
+        try:
+            if len(c_split) == 2:
+                if ":" not in c_split[0] and ":" not in c_split[1]:
+                    ra_q = float(c_split[0].strip())
+                    dec_q = float(c_split[1].strip())
+                else:
+                    ra_q, dec_q = convert_coord_str_float(c_split[0].strip().split(":"), c_split[1].strip().split(":"))
+            else:
+                ra_q, dec_q = convert_coord_str_float(c_split[0:3], c_split[3:6])
+        except:
+            print('WARNING: Unable to parse the coordinate!')
+            return
+        else:
+            coord = mergecat_dict['coord']
+            sep = np.sqrt(
+                (ra_q - coord[:, 0]) ** 2 + (dec_q - coord[:, 1]) ** 2
+            )
+            if np.min(sep) < dmatch / 3600:
+                init_star_index = sep.argmin()
+                print("Find target star with index: {0}".format(init_star_index))
+            else:
+                print("WARNING: No matching stars within {} arcsec".format(dmatch))
+                return
+
+
 
     if "magx" in mergecat_dict.keys():
         plot_lc(file_name, init_star_index)
