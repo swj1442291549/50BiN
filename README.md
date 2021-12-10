@@ -88,6 +88,8 @@ The output files include:
 - `*.{phot_flag}{mag_type}gcat_mmag`: average brightness of each star (`index`, `ra`, `dec`, `mmag`, `mmag_err`)
 - `*.{phot_flag}{mag_type}gcat_cal.pkl`: python pickle file that contains all data
 
+bad frames are marked if the standard stars' deviations on those frames are larger than 3 sigma. 
+
 
 ### `plotcurve`
 This program is to present the data in time-series light curve. It can also show the magnitude versus airmass.
