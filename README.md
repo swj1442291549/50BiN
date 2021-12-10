@@ -101,23 +101,24 @@ Usage: plotcurve.py [OPTIONS]
 Options:
   -f, --file_name TEXT           Input pkl file name
   -i, --init_star_index INTEGER  Index of star to plot
+  --coord TEXT                   Coordinate of the query star. Example: '0:0:0.0 0:0:0.0' or '0 0 0.0 0 0 0.0' or '0.0 0.0'
   --help                         Show this message and exit.
 ```
 
 The default figure is shown in UT horizontal axis with multiple-day data folded into a single frame. The `plot_flag` controls the output format:
 - `l`: Light curve (magnitude vs. mjd)
-- `a`: airmass mode (raw magnitude vs. airmass)
-- `f`: FWHM mode (FWHM vs. mjd)
+- `a`: airmass (raw magnitude vs. airmass)
+- `f`: FWHM (FWHM vs. mjd)
 
 It can be switched to day mode that expands the data into the MJD axis. The bad frames are indicated as crosses.
 
 You can interact with the plot through the keyboard:
 - `n`: next star; next day (day mode)
 - `N`: previous star; previous day (day mode)
-- `d`: switch day mode
-- `l`: switch on/off light curve mode
-- `a`: switch on/off airmass mode
-- `f`: switch on/off FWHM mode
+- `d`: switch on/off day mode
+- `l`: switch on/off light curve data
+- `a`: switch on/off airmass data
+- `f`: switch on/off FWHM data
 - `z`: zoom out
 - `Z`: zoom in
 - `r`: reset scale
