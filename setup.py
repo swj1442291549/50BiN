@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="50bin",
-    version="0.5.1",
+    version="0.5.2",
     py_modules=["mergecat", "correctphot", "plotcurve"],
     install_requires=[
         "Click",
