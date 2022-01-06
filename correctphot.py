@@ -18,7 +18,9 @@ import warnings
 )
 @click.option("--noc", type=int, default=5, help="Number of selected standard stars")
 @click.option(
-    "--method", type=str, help="Method of correcting photometry (See README for details)."
+    "--method",
+    type=str,
+    help="Method of correcting photometry (See README for details).",
 )
 def cli(file_name, magtype, noc, method):
     """Calibrate the instrumental photometry"""
@@ -149,8 +151,9 @@ def cli(file_name, magtype, noc, method):
             magmatch, nstar, frame_info, ncs, medframe_index, nframe
         )
 
-    frame_info = select_bad_frames(magx, ncs, frame_info, nframe, mjd_date_list, band_list)
-
+    frame_info = select_bad_frames(
+        magx, ncs, frame_info, nframe, mjd_date_list, band_list
+    )
 
     for i in range(noc):
         print(
@@ -191,15 +194,18 @@ def select_bad_frames(magx, ncs, frame_info, nframe, mjd_date_list, band_list):
     is_bad = np.zeros(nframe)
     for mjd_date in mjd_date_list:
         for band in band_list:
-            index = frame_info[(frame_info.mjd == mjd_date) & (frame_info.band == band)].index
+            index = frame_info[
+                (frame_info.mjd == mjd_date) & (frame_info.band == band)
+            ].index
             magx_ncs_mean = np.nanmean(magx_ncs[:, index], axis=1)
             magx_ncs_std = np.nanstd(magx_ncs[:, index], axis=1)
-            sig = (np.abs(np.subtract(magx_ncs[:, index].T, magx_ncs_mean)) / magx_ncs_std).T
+            sig = (
+                np.abs(np.subtract(magx_ncs[:, index].T, magx_ncs_mean)) / magx_ncs_std
+            ).T
             is_bad[index] = np.sum(sig > 3, axis=0) > 1
     is_bad = np.array(is_bad, dtype=bool)
     frame_info = frame_info.assign(is_bad=is_bad)
     return frame_info
-
 
 
 def differential_correct_phot(magmatch, nstar, frame_info, ncs, medframe_index, nframe):
@@ -337,7 +343,6 @@ def least_square_correct_phot(
             magx[:, i, 0] = dmag_pred + magmatch[:, i, 0]
     ommag, ommag_err = estimate_ommag(magx, nstar)
     return magx, ommag, ommag_err
-
 
 
 if __name__ == "__main__":

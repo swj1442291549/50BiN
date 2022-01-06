@@ -290,6 +290,7 @@ def read_obs_location(obs_flag):
         )
         return mountain
 
+
 def convert_coord_str_float(ra_s, dec_s):
     rah = pd.to_numeric(ra_s[0])
     ram = pd.to_numeric(ra_s[1])

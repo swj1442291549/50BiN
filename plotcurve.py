@@ -15,11 +15,13 @@ import numpy as np
     "-i", "--init_star_index", type=int, default=0, help="Index of star to plot"
 )
 @click.option(
-        "--coord", type=str, help="Coordinate of the query star. Example: '0:0:0.0 0:0:0.0' or '0 0 0.0 0 0 0.0' or '0.0 0.0'"
+    "--coord",
+    type=str,
+    help="Coordinate of the query star. Example: '0:0:0.0 0:0:0.0' or '0 0 0.0 0 0 0.0' or '0.0 0.0'",
 )
 def cli(file_name, init_star_index, coord):
     """Plot light curves"""
-    
+
     dmatch = 1
     if file_name is None:
         candidate_file_list = glob("*gcat_cal.pkl")
@@ -51,25 +53,23 @@ def cli(file_name, init_star_index, coord):
                     ra_q = float(c_split[0].strip())
                     dec_q = float(c_split[1].strip())
                 else:
-                    ra_q, dec_q = convert_coord_str_float(c_split[0].strip().split(":"), c_split[1].strip().split(":"))
+                    ra_q, dec_q = convert_coord_str_float(
+                        c_split[0].strip().split(":"), c_split[1].strip().split(":")
+                    )
             else:
                 ra_q, dec_q = convert_coord_str_float(c_split[0:3], c_split[3:6])
         except:
-            print('WARNING: Unable to parse the coordinate!')
+            print("WARNING: Unable to parse the coordinate!")
             return
         else:
-            coord = mergecat_dict['coord']
-            sep = np.sqrt(
-                (ra_q - coord[:, 0]) ** 2 + (dec_q - coord[:, 1]) ** 2
-            )
+            coord = mergecat_dict["coord"]
+            sep = np.sqrt((ra_q - coord[:, 0]) ** 2 + (dec_q - coord[:, 1]) ** 2)
             if np.min(sep) < dmatch / 3600:
                 init_star_index = sep.argmin()
                 print("Find target star with index: {0}".format(init_star_index))
             else:
                 print("WARNING: No matching stars within {} arcsec".format(dmatch))
                 return
-
-
 
     if "magx" in mergecat_dict.keys():
         plot_lc(file_name, init_star_index)
@@ -102,7 +102,9 @@ def coord_to_str(ra, dec):
     return ra_str, dec_str
 
 
-def save_single_phot(file_name, magtype, star_index, amjd, coord, frame_info, magmatch, magx):
+def save_single_phot(
+    file_name, magtype, star_index, amjd, coord, frame_info, magmatch, magx
+):
     """Save single star's photometry into file
 
     Args:
@@ -138,7 +140,7 @@ def save_single_phot(file_name, magtype, star_index, amjd, coord, frame_info, ma
                     (amjd[i] - int(amjd[i]) + 0.5) * 24,
                     magmatch[star_index, i, 0],
                     magmatch[star_index, i, 1],
-                    frame_info.iloc[i]['band']
+                    frame_info.iloc[i]["band"],
                 )
             )
     with open(mag_file_name, "w") as f:
@@ -153,7 +155,7 @@ def save_single_phot(file_name, magtype, star_index, amjd, coord, frame_info, ma
                     (amjd[i] - int(amjd[i]) + 0.5) * 24,
                     magx[star_index, i, 0],
                     magx[star_index, i, 1],
-                    frame_info.iloc[i]['band']
+                    frame_info.iloc[i]["band"],
                 )
             )
 
@@ -182,12 +184,12 @@ def prepare_lc_df(star_index, frame_info, magmatch, magx):
     return lc
 
 
-
 def handle_margin(mag_surronding, mag_zoom_index):
     if mag_zoom_index >= -2:
         return mag_surronding * 1.4 ** mag_zoom_index
     else:
         return (mag_zoom_index + 2) * mag_surronding / 2
+
 
 def plot_lc(file_name, init_star_index):
     """Plot light curve
@@ -278,11 +280,7 @@ def plot_lc(file_name, init_star_index):
     mag_zoom_index = 0
     fwhm_zoom_index = 0
 
-    plot_label_dict = {
-            "l": "Light curve",
-            "a": "Airmass",
-            "f": "FWHM"
-            }
+    plot_label_dict = {"l": "Light curve", "a": "Airmass", "f": "FWHM"}
 
     marker_list = ["o", "v", "^", "D", "s"]
     color_list = ["C0", "C1", "C2", "C3", "C4"]
@@ -377,21 +375,36 @@ def plot_lc(file_name, init_star_index):
                 plot_flag = "a"
             else:
                 plot_flag_old, plot_flag = plot_flag, plot_flag_old
-            plt.text(text_x, text_y, plot_label_dict[plot_flag], transform=plt.gca().transAxes)
+            plt.text(
+                text_x,
+                text_y,
+                plot_label_dict[plot_flag],
+                transform=plt.gca().transAxes,
+            )
         elif event.key == "f":
             if plot_flag != "f":
                 plot_flag_old = plot_flag
                 plot_flag = "f"
             else:
                 plot_flag_old, plot_flag = plot_flag, plot_flag_old
-            plt.text(text_x, text_y, plot_label_dict[plot_flag], transform=plt.gca().transAxes)
+            plt.text(
+                text_x,
+                text_y,
+                plot_label_dict[plot_flag],
+                transform=plt.gca().transAxes,
+            )
         elif event.key == "l":
             if plot_flag != "l":
                 plot_flag_old = plot_flag
                 plot_flag = "l"
             else:
                 plot_flag_old, plot_flag = plot_flag, plot_flag_old
-            plt.text(text_x, text_y, plot_label_dict[plot_flag], transform=plt.gca().transAxes)
+            plt.text(
+                text_x,
+                text_y,
+                plot_label_dict[plot_flag],
+                transform=plt.gca().transAxes,
+            )
         elif event.key == "r":
             mag_zoom_index = 0
             fwhm_zoom_index = 0
@@ -426,7 +439,7 @@ def plot_lc(file_name, init_star_index):
         fwhm_zoom_index,
     ):
         lc = prepare_lc_df(star_index, frame_info, magmatch, magx)
-        if plot_flag == 'l':
+        if plot_flag == "l":
             if mjd_index != -1:
                 lc = lc[lc.mjd == mjd_date_list[mjd_index]]
             xlabel = "MJD"
@@ -467,8 +480,10 @@ def plot_lc(file_name, init_star_index):
                     ommag[star_index], min(x), max(x), linestyles="dashed", colors="red"
                 )
                 plt.ylim(
-                    np.percentile(y2, 3) - handle_margin(mag_surronding, mag_zoom_index),
-                    np.percentile(y2, 97) + handle_margin(mag_surronding, mag_zoom_index),
+                    np.percentile(y2, 3)
+                    - handle_margin(mag_surronding, mag_zoom_index),
+                    np.percentile(y2, 97)
+                    + handle_margin(mag_surronding, mag_zoom_index),
                 )
                 plt.gca().invert_yaxis()
         elif plot_flag == "a":
@@ -496,14 +511,21 @@ def plot_lc(file_name, init_star_index):
                             s=20,
                             c=color_list[i],
                             marker="x",
-                            label="__nolegend__"
+                            label="__nolegend__",
                         )
                     plt.legend()
                 else:
                     cmap = cm.get_cmap("rainbow")
                     if mjd_index == -1:
                         scatter = plt.scatter(x, y1, s=4, c=lc.mjd, cmap="rainbow")
-                        plt.scatter(x[lc.is_bad], y1[lc.is_bad], s=20, marker="x", c=lc[lc.is_bad].mjd, cmap="rainbow")
+                        plt.scatter(
+                            x[lc.is_bad],
+                            y1[lc.is_bad],
+                            s=20,
+                            marker="x",
+                            c=lc[lc.is_bad].mjd,
+                            cmap="rainbow",
+                        )
                         plt.legend(*scatter.legend_elements())
                     else:
                         for i in range(nband):
@@ -520,12 +542,14 @@ def plot_lc(file_name, init_star_index):
                                 s=20,
                                 c=color_list[i],
                                 marker="x",
-                                label="__nolegend__"
+                                label="__nolegend__",
                             )
                         plt.legend()
                 plt.ylim(
-                    np.percentile(y2, 3) - handle_margin(mag_surronding, mag_zoom_index),
-                    np.percentile(y2, 97) + handle_margin(mag_surronding, mag_zoom_index),
+                    np.percentile(y2, 3)
+                    - handle_margin(mag_surronding, mag_zoom_index),
+                    np.percentile(y2, 97)
+                    + handle_margin(mag_surronding, mag_zoom_index),
                 )
                 plt.gca().invert_yaxis()
         elif plot_flag == "f":
@@ -559,7 +583,9 @@ def plot_lc(file_name, init_star_index):
                 plt.legend()
                 plt.ylim(
                     min(y1),
-                    max(y1) + handle_margin(fwhm_surronding, fwhm_zoom_index) - fwhm_surronding,
+                    max(y1)
+                    + handle_margin(fwhm_surronding, fwhm_zoom_index)
+                    - fwhm_surronding,
                 )
         title = "#: {0:4d}  M = {1:.2f}  RA: {3}  DEC: {4}  MJD+{2:d}".format(
             star_index,
