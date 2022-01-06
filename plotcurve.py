@@ -207,14 +207,13 @@ def plot_lc(file_name, init_star_index):
         file_name (str): pkl file name with magx
     """
     print("Plotting ...")
-    if "s" in plt.rcParams["keymap.save"]:
-        plt.rcParams["keymap.save"].remove("s")
-    if "a" in plt.rcParams["keymap.all_axes"]:
-        plt.rcParams["keymap.all_axes"].remove("a")
-    if "f" in plt.rcParams["keymap.fullscreen"]:
-        plt.rcParams["keymap.fullscreen"].remove("f")
-    if "l" in plt.rcParams["keymap.yscale"]:
-        plt.rcParams["keymap.yscale"].remove("l")
+    # Remove "s", "a", "f", "l" from keymap
+    for key in plt.rcParams:
+        if key[:6] == "keymap":
+            for key_to_remove in ["s", "a", "f", "l"]:
+                if key_to_remove in plt.rcParams[key]:
+                    plt.rcParams[key].remove(key_to_remove)
+
     mergecat_dict = pickle.load(open(file_name, "rb"))
     (
         nframe,
