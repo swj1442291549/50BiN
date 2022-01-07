@@ -222,19 +222,23 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
         f.write(
             "   id              ra             dec      apmag  apmag_err     psfmag psfmag_err\n"
         )
-        for j in range(len(ncs)):
-            i = ncs[j]
-            f.write(
-                "{6:5d} {0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
-                    coord_list[medframe_index][i, 0],
-                    coord_list[medframe_index][i, 1],
-                    apmagmatch[i, medframe_index, 0],
-                    apmagmatch[i, medframe_index, 1],
-                    psfmagmatch[i, medframe_index, 0],
-                    psfmagmatch[i, medframe_index, 1],
-                    i,
+        for iband in band_list:
+            f.write("#{0}\n".format(iband))
+            mframe_index = locate_closet_frame_of_band(frame_info, frame_info.loc[medframe_index].amjd, iband)
+            print(mframe_index)
+            for j in range(len(ncs)):
+                i = ncs[j]
+                f.write(
+                    "{6:5d} {0:15.8f} {1:15.8f} {2:10.5f} {3:10.5f} {4:10.5f} {5:10.5f}\n".format(
+                        coord_list[medframe_index][i, 0],
+                        coord_list[medframe_index][i, 1],
+                        apmagmatch[i, mframe_index, 0],
+                        apmagmatch[i, mframe_index, 1],
+                        psfmagmatch[i, mframe_index, 0],
+                        psfmagmatch[i, mframe_index, 1],
+                        i,
+                    )
                 )
-            )
     print("Save standard stars info in {0}".format(stdstar_file_name))
 
     # Write merged uncalibrated data into a file
@@ -269,6 +273,13 @@ def cli(phot_flag, dmatch, sdev, medframe_factor, obs_flag, band, noc):
     pickle.dump(mergecat_dict, open(mergecat_file_name, "wb"))
     print("Save python pickle data in {0}".format(mergecat_file_name))
 
+
+
+def locate_closet_frame_of_band(frame_info, amjd, band):
+    frame_band = frame_info[frame_info.band == band]
+    amjd_diff = np.abs(frame_band.amjd - amjd)
+    if min(amjd_diff) < 1e-3:
+        return amjd_diff.idxmin()
 
 def read_obs_location(obs_flag):
     """Read Earthlocation for different observatory
