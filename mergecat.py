@@ -408,7 +408,7 @@ def convert_str_to_float(string):
     """
     try:
         f = float(string)
-    except:
+    except Exception:
         f = np.nan
     return f
 

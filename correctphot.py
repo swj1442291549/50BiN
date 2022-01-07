@@ -336,7 +336,7 @@ def least_square_correct_phot(
                 est = smf.ols("dmag ~ {0}".format(method), data=dat).fit()
             else:
                 est = smf.ols("dmag ~ 1", data=dat).fit()
-        except:
+        except Exception:
             continue
         else:
             dmag_pred = est.predict(dat_p)

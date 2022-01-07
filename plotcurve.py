@@ -58,7 +58,7 @@ def cli(file_name, init_star_index, coord):
                     )
             else:
                 ra_q, dec_q = convert_coord_str_float(c_split[0:3], c_split[3:6])
-        except:
+        except Exception:
             print("WARNING: Unable to parse the coordinate!")
             return
         else:
