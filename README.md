@@ -59,7 +59,7 @@ Options:
 ```
 
 The output files include:
-- `stdstar.dat`: photometry of non-variable candidates in the reference frame (columns: `ra`, `dec`, `apmag`, `apmag_err`, `psfmag`, `psfmag_err`)
+- `stdstar.dat`: photometry of non-variable candidates in the reference frame (columns: `ra`, `dec`, `apmag`, `apmag_err`, `psfmag`, `psfmag_err`). Grouped by bands.
 - `*.{phot_flag}gcat.pkl`: python pickle file that contains all data as a python dictionary
 
 ### `correctphot`
@@ -67,7 +67,10 @@ This program is to calibrate the instrumental photometry via differential photom
 
 No external standard stars are required. Instead, the brightest `noc` (default: 5) standard stars from `stdstar.dat` are used to conduct the ensemble photometry, that is, using the average chaning behavior of these standard stars over frames to correct the photometry of the remaining stars. 
 
+A calibration from instrumental magnitudes to standard magnitudes is necessary for many science cases. However, due to different circumstances for users' case, I do *not* implement this function in this code. The basic idea is to use the `stdstar.dat` file and cross-match with external catalogues to do your own calibartion. Once its done, its easy to pass the result to `correctphot` through variable `smag_ncs`. It should be a 2D-array with the shape of `{noc}, nframe`.
+
 `method` option controls which method for differential correction. If left empty, an average magnitude shift (m-m0) among standard stars will be used. This is the fastest one, but only suitable for single-band data. You could also use least-square fitting method. In that case, you need to specify which parameter to fit. The parameters can be the coordinates on the CCD (`x`, `y`) and its color (e.g., B-V). They should be joined by the plus sign `+` with no space. For instance, if you only want to use the coordinate, `--method x+y`. For multi-band data, you have to include (at least) one color in the method option, e.g., `--method BV+VI` (which means B-V and V-I).  
+
 
 `magtype` controls which magnitude to used in this process. `a` for aperture photometry and `p` for psf photometry.
 
@@ -129,3 +132,6 @@ The output files include:
 - `*.orig`: original photometry of one star (`index`, `mjd`, `ut`, `mag`, `mag_err`, `band`)
 - `*.dat`: corrected photometry of one star (`index`, `mjd`, `ut`, `magx`, `magx_err`, `band`)
 
+
+## TODO
+- [  ] Better implementation of `smag_ncs`
